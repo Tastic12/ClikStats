@@ -2,16 +2,6 @@ import useSWR from 'swr'
 import { supabase } from './supabase'
 import type { Channel, Video, ChannelMetric, VideoMetric } from './supabase'
 
-// Fetcher function for SWR
-const fetcher = async (key: string) => {
-  const { data, error } = await supabase
-    .from(key.split(':')[0])
-    .select(key.split(':')[1] || '*')
-  
-  if (error) throw error
-  return data
-}
-
 // Hook for fetching user's channels
 export function useChannels() {
   const { data, error, mutate } = useSWR<Channel[]>('channels', async () => {
@@ -133,7 +123,7 @@ export function useDashboardData() {
 }
 
 // Utility function to call edge functions
-export async function callEdgeFunction(functionName: string, payload: any) {
+export async function callEdgeFunction(functionName: string, payload: Record<string, unknown>) {
   const { data: { session } } = await supabase.auth.getSession()
   
   if (!session) {

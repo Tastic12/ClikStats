@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# legacy subdirectory (local leftovers)
+/youtube-analytics/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

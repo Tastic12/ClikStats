@@ -1,222 +1,250 @@
 # YouTube Analytics Pro
 
-A comprehensive Next.js application for tracking YouTube channels, videos, and analytics using Supabase and the YouTube Data API.
+A comprehensive YouTube analytics application built with Next.js, TypeScript, Supabase, and the YouTube Data API. Track your YouTube channels, analyze performance metrics, and grow your audience with detailed insights and beautiful visualizations.
 
-## Features
+![YouTube Analytics Pro](https://via.placeholder.com/800x400?text=YouTube+Analytics+Pro)
 
-- 🔐 **Supabase Authentication** - Secure user registration and login
-- 📊 **YouTube Analytics** - Track channel subscribers, views, and video performance
-- 📈 **Real-time Charts** - Beautiful visualizations using Recharts
-- 🔄 **Automatic Updates** - Daily cron jobs to refresh metrics
-- 🎯 **Multi-channel Support** - Track multiple YouTube channels
-- 📱 **Responsive Design** - Mobile-friendly interface with Tailwind CSS
+## 🚀 Features
 
-## Tech Stack
+- **Multi-Channel Support**: Track multiple YouTube channels from a single dashboard
+- **Real-time Analytics**: Monitor subscriber count, view count, and video performance
+- **Interactive Charts**: Beautiful visualizations using Recharts
+- **Video Tracking**: Detailed analytics for individual videos
+- **Automatic Updates**: Daily automated metric updates via Supabase Edge Functions
+- **Secure Authentication**: Supabase Auth with row-level security
+- **Responsive Design**: Modern UI that works on all devices
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Auth + Edge Functions)
+## 🛠️ Tech Stack
+
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Backend**: Supabase (PostgreSQL + Edge Functions)
+- **Authentication**: Supabase Auth
 - **Charts**: Recharts
-- **Data Fetching**: SWR with stale-while-revalidate
-- **API**: YouTube Data API v3
+- **Styling**: Tailwind CSS
+- **Data Fetching**: SWR
+- **API Integration**: YouTube Data API v3
 
-## Project Structure
+## 📋 Prerequisites
 
-```
-youtube-analytics/
-├── src/
-│   ├── app/                    # Next.js App Router pages
-│   │   ├── page.tsx           # Landing page
-│   │   ├── auth/              # Authentication
-│   │   ├── dashboard/         # Main dashboard
-│   │   ├── onboarding/        # Channel setup
-│   │   └── tracking/          # Channel & video management
-│   └── components/            # React components
-├── lib/
-│   ├── supabase.ts           # Supabase client & types
-│   └── hooks.ts              # SWR data hooks
-├── supabase/
-│   ├── migrations/           # Database schema
-│   └── functions/            # Edge Functions
-└── components/
-    └── Charts.tsx            # Chart components
-```
+Before you begin, ensure you have:
 
-## Setup Instructions
-
-### 1. Prerequisites
-
-- Node.js 18+ and npm
-- Supabase account
+- Node.js 18+ installed
+- A Supabase account and project
+- A Google Cloud Platform account with YouTube Data API enabled
 - YouTube Data API key
 
-### 2. Clone and Install
+## 🔧 Installation
 
-```bash
-git clone <repository-url>
-cd youtube-analytics
-npm install
-```
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd ClikStats
+   ```
 
-### 3. Environment Variables
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-Copy `.env.local.example` to `.env.local` and fill in your values:
+3. **Set up environment variables**
+   
+   Copy `.env.local.example` to `.env.local` and fill in your values:
+   ```bash
+   cp .env.local.example .env.local
+   ```
 
-```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   Required environment variables:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   YOUTUBE_API_KEY=your_youtube_data_api_key
+   ```
 
-# YouTube Data API
-YOUTUBE_API_KEY=your_youtube_api_key
-```
+4. **Set up Supabase**
 
-### 4. Database Setup
+   Run the database migrations:
+   ```bash
+   npx supabase db push
+   ```
 
-1. Create a new Supabase project
-2. Run the migration file `supabase/migrations/20241201000001_initial_schema.sql` in your Supabase SQL editor
-3. This will create all necessary tables with RLS policies
+   Deploy the Edge Functions:
+   ```bash
+   npx supabase functions deploy init-channel
+   npx supabase functions deploy update-metrics-cron
+   ```
 
-### 5. Edge Functions Setup
+5. **Start the development server**
+   ```bash
+   npm run dev
+   ```
 
-Deploy the Edge Functions to Supabase:
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-```bash
-# Install Supabase CLI
-npm install -g supabase
+## 🗄️ Database Schema
 
-# Login to Supabase
-supabase login
+The application uses the following main tables:
 
-# Link to your project
-supabase link --project-ref your-project-ref
-
-# Deploy functions
-supabase functions deploy init-channel
-supabase functions deploy update-metrics-cron
-```
-
-### 6. Set up Environment Variables in Supabase
-
-In your Supabase dashboard, go to Settings > Edge Functions and add:
-- `YOUTUBE_API_KEY`: Your YouTube Data API key
-
-### 7. Run the Application
-
-```bash
-npm run dev
-```
-
-Visit `http://localhost:3000` to see the application.
-
-## Usage
-
-### Getting Started
-
-1. **Sign Up**: Create an account on the landing page
-2. **Onboarding**: Add your first YouTube channel URL
-3. **Dashboard**: View analytics and insights
-4. **Manage Channels**: Add/remove channels you want to track
-5. **View Videos**: Browse and manage tracked videos
-
-### Adding Channels
-
-Supported YouTube URL formats:
-- `https://www.youtube.com/channel/UC...`
-- `https://www.youtube.com/c/channelname`
-- `https://www.youtube.com/user/username`
-- `https://www.youtube.com/@channelname`
-
-### Automatic Updates
-
-The system automatically:
-- Fetches channel info and latest 10 videos when adding a channel
-- Updates all metrics daily via the `update-metrics-cron` Edge Function
-- Stores historical data for trend analysis
-
-## Database Schema
-
-### Tables
-
-- **users**: User profiles (extends Supabase auth.users)
+- **users**: User profiles and authentication
 - **channels**: YouTube channel information
 - **channel_metrics**: Historical channel metrics
-- **videos**: YouTube video information
+- **videos**: Video information
 - **video_metrics**: Historical video metrics
 
-### Row Level Security (RLS)
+All tables include Row Level Security (RLS) policies to ensure users only access their own data.
 
-All tables have RLS policies ensuring users can only access their own data.
+## ⚡ Edge Functions
 
-## API Endpoints
+### init-channel
+Initializes a new YouTube channel by:
+- Fetching channel information from YouTube API
+- Storing channel data in the database
+- Fetching the latest 10 videos
+- Creating initial metric records
 
-### Edge Functions
+### update-metrics-cron
+Daily scheduled function that:
+- Updates metrics for all channels
+- Fetches new video data
+- Records historical metric data points
 
-- `POST /functions/v1/init-channel`: Initialize a new channel
-- `POST /functions/v1/update-metrics-cron`: Update all metrics (cron job)
+## 📱 Usage
 
-## Cron Setup
+### Adding Your First Channel
 
-### Option 1: Supabase Cron (Recommended)
+1. Sign up or log in to the application
+2. Navigate to the onboarding page
+3. Enter your YouTube channel URL in any of these formats:
+   - `https://www.youtube.com/channel/UC...`
+   - `https://www.youtube.com/c/channelname`
+   - `https://www.youtube.com/user/username`
+   - `https://www.youtube.com/@handle`
+4. Click "Add Channel" to initialize tracking
 
-Add to your Supabase project:
+### Dashboard
 
-```sql
-SELECT cron.schedule(
-  'update-youtube-metrics',
-  '0 2 * * *', -- Daily at 2 AM UTC
-  'SELECT net.http_post(
-    url := ''https://your-project.supabase.co/functions/v1/update-metrics-cron'',
-    headers := jsonb_build_object(
-      ''Authorization'', ''Bearer '' || ''your-service-role-key'',
-      ''Content-Type'', ''application/json''
-    ),
-    body := jsonb_build_object()
-  );'
-);
-```
+The dashboard provides:
+- Overview metrics for all your channels
+- Interactive charts showing growth over time
+- Top-performing videos
+- Channel distribution (for multiple channels)
 
-### Option 2: Vercel Cron
+### Video Tracking
 
-If deploying to Vercel, add to `vercel.json`:
+The tracking page offers:
+- Detailed video-level analytics
+- Search and filtering capabilities
+- Performance trends over time
+- Individual video metrics
 
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/update-metrics",
-      "schedule": "0 2 * * *"
-    }
-  ]
+## 🎨 Customization
+
+### Adding New Chart Types
+
+To add new chart types, extend the components in `src/components/Charts.tsx`:
+
+```typescript
+export function NewChartComponent({ data }: { data: any[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <YourChartType data={data}>
+        {/* Chart configuration */}
+      </YourChartType>
+    </ResponsiveContainer>
+  )
 }
 ```
 
-## Deployment
+### Extending Metrics
 
-### Deploy to Vercel
+To track additional metrics:
 
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy
+1. Update the database schema in `supabase/migrations/`
+2. Modify the Edge Functions to fetch new data
+3. Update TypeScript interfaces in `lib/supabase.ts`
+4. Add new hooks in `lib/hooks.ts`
 
-### Deploy Edge Functions
+## 🔐 Security
 
-```bash
-supabase functions deploy --project-ref your-project-ref
+- All API routes are protected with Supabase RLS policies
+- Users can only access their own data
+- Environment variables secure API keys
+- CORS properly configured for production
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+
+1. Connect your repository to Vercel
+2. Add environment variables in Vercel dashboard
+3. Deploy with automatic CI/CD
+
+### Other Platforms
+
+The application can be deployed to any platform that supports Next.js:
+- Netlify
+- AWS Amplify
+- Railway
+- Render
+
+## 📊 API Reference
+
+### YouTube Data API Integration
+
+The application uses these YouTube Data API endpoints:
+- `channels.list`: Get channel information
+- `search.list`: Find videos by channel
+- `videos.list`: Get detailed video information
+
+### Supabase Edge Functions
+
+#### POST /functions/v1/init-channel
+Initialize a new YouTube channel for tracking.
+
+**Request Body:**
+```json
+{
+  "channelId": "string",
+  "channelUrl": "string"
+}
 ```
 
-## Contributing
+#### POST /functions/v1/update-metrics-cron
+Update metrics for all tracked channels (called by Supabase cron).
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## License
+## 📝 License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 🆘 Support
 
-For support, email support@youtubeanalyticspro.com or create an issue in the repository. 
+If you encounter any issues or have questions:
+
+1. Check the [Issues](issues) page for existing solutions
+2. Create a new issue with detailed information
+3. Include screenshots and error messages when applicable
+
+## 🎯 Roadmap
+
+- [ ] Email notifications for metric changes
+- [ ] Export data to CSV/PDF
+- [ ] Competitor analysis
+- [ ] Advanced filtering and date ranges
+- [ ] Mobile app
+- [ ] AI-powered insights
+
+## 🙏 Acknowledgments
+
+- [Next.js](https://nextjs.org/) for the amazing React framework
+- [Supabase](https://supabase.com/) for the backend infrastructure
+- [Recharts](https://recharts.org/) for beautiful chart components
+- [Tailwind CSS](https://tailwindcss.com/) for utility-first styling
+- [YouTube Data API](https://developers.google.com/youtube/v3) for providing access to YouTube data
