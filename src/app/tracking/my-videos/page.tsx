@@ -10,6 +10,7 @@ import {
   useVideos,
   useVideoMetrics,
   buildVideoChartMetrics,
+  syncChannelVideos,
 } from '../../../../lib/hooks'
 import {
   VideoMetricsChart,
@@ -25,9 +26,11 @@ export default function MyVideosPage() {
   const [user, setUser] = useState<User | null>(null)
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [syncing, setSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState('')
 
-  const { channel, isLoading: channelLoading } = useOwnedChannel()
-  const { videos, isLoading: videosLoading } = useVideos(channel?.id)
+  const { channel, isLoading: channelLoading, mutate: mutateChannel } = useOwnedChannel()
+  const { videos, isLoading: videosLoading, mutate: mutateVideos } = useVideos(channel?.id)
   const { metrics: videoMetrics, isLoading: metricsLoading } = useVideoMetrics(selectedVideo?.id)
 
   useEffect(() => {
@@ -44,6 +47,25 @@ export default function MyVideosPage() {
   const filteredVideos = videos?.filter((v) =>
     v.title.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  const storedCount = videos?.length ?? 0
+  const youtubeCount = channel?.video_count ?? 0
+  const mayBeIncomplete = youtubeCount > 0 && storedCount < youtubeCount
+
+  const handleSyncVideos = async () => {
+    setSyncing(true)
+    setSyncMessage('')
+    try {
+      const result = await syncChannelVideos()
+      await mutateVideos()
+      await mutateChannel()
+      setSyncMessage(`Synced ${result.synced ?? 0} videos from YouTube.`)
+    } catch (err) {
+      setSyncMessage(err instanceof Error ? err.message : 'Sync failed')
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const chartMetrics = selectedVideo && buildVideoChartMetrics(selectedVideo, videoMetrics)
   const hasHistory = (videoMetrics?.length ?? 0) >= 2
@@ -76,6 +98,29 @@ export default function MyVideosPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
             <div className="lg:col-span-4 xl:col-span-3 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-[var(--muted)]">
+                  Showing {storedCount}
+                  {youtubeCount > 0 ? ` of ${youtubeCount}` : ''} videos in ClikStats
+                </p>
+                <button
+                  type="button"
+                  onClick={handleSyncVideos}
+                  disabled={syncing}
+                  className="text-xs font-medium text-[var(--accent)] hover:underline disabled:opacity-50"
+                >
+                  {syncing ? 'Syncing…' : 'Sync all from YouTube'}
+                </button>
+              </div>
+              {syncMessage && (
+                <p className="text-xs text-[var(--muted-2)]">{syncMessage}</p>
+              )}
+              {mayBeIncomplete && !syncing && (
+                <p className="text-xs text-[var(--muted)]">
+                  Only a subset may have been imported when you connected. Sync loads your full uploads
+                  list.
+                </p>
+              )}
               <input
                 type="search"
                 placeholder="Search your videos…"

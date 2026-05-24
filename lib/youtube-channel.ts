@@ -103,25 +103,157 @@ export type ChannelVideoRecord = {
   comment_count: number
 }
 
+async function getUploadsPlaylistId(youtubeChannelId: string, apiKey: string): Promise<string | null> {
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${encodeURIComponent(youtubeChannelId)}&key=${apiKey}`
+  )
+  const data = await res.json()
+  if (!res.ok) return null
+  return data?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads ?? null
+}
+
+type VideoDetailItem = {
+  id: string
+  contentDetails?: { duration?: string }
+  statistics?: { viewCount?: string; likeCount?: string; commentCount?: string }
+  snippet?: {
+    title?: string
+    description?: string
+    publishedAt?: string
+    thumbnails?: { high?: { url: string }; medium?: { url: string } }
+  }
+}
+
+async function fetchVideoDetailsByIds(
+  videoIds: string[],
+  apiKey: string
+): Promise<Map<string, VideoDetailItem>> {
+  const map = new Map<string, VideoDetailItem>()
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const chunk = videoIds.slice(i, i + 50).join(',')
+    const res = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics,snippet&id=${chunk}&key=${apiKey}`
+    )
+    const data = await res.json()
+    if (!res.ok) continue
+    for (const item of (data.items || []) as VideoDetailItem[]) {
+      map.set(item.id, item)
+    }
+  }
+  return map
+}
+
+/** Fetch all (or up to maxVideos) uploads from a channel via the uploads playlist. */
 export async function fetchChannelVideos(
   youtubeChannelId: string,
-  apiKey: string
+  apiKey: string,
+  maxVideos = 500
 ): Promise<ChannelVideoRecord[]> {
-  const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${youtubeChannelId}&type=video&order=date&maxResults=10&key=${apiKey}`
-  const searchRes = await fetch(searchUrl)
-  const searchData = await searchRes.json()
+  const uploadsPlaylistId = await getUploadsPlaylistId(youtubeChannelId, apiKey)
 
-  if (!searchRes.ok || !searchData?.items?.length) {
-    return []
+  if (uploadsPlaylistId) {
+    type PlaylistItem = {
+      snippet: {
+        resourceId: { videoId: string }
+        title: string
+        description?: string
+        publishedAt: string
+        thumbnails?: { high?: { url: string }; medium?: { url: string } }
+      }
+    }
+
+    const playlistItems: PlaylistItem[] = []
+    let pageToken: string | undefined
+
+    do {
+      const url = new URL('https://www.googleapis.com/youtube/v3/playlistItems')
+      url.searchParams.set('part', 'snippet')
+      url.searchParams.set('playlistId', uploadsPlaylistId)
+      url.searchParams.set('maxResults', '50')
+      url.searchParams.set('key', apiKey)
+      if (pageToken) url.searchParams.set('pageToken', pageToken)
+
+      const res = await fetch(url.toString())
+      const data = await res.json()
+      if (!res.ok || !data?.items?.length) break
+
+      playlistItems.push(...data.items)
+      pageToken = data.nextPageToken as string | undefined
+    } while (pageToken && playlistItems.length < maxVideos)
+
+    const capped = playlistItems.slice(0, maxVideos)
+    const videoIds = capped
+      .map((item) => item.snippet.resourceId.videoId)
+      .filter(Boolean)
+
+    if (!videoIds.length) return []
+
+    const detailsMap = await fetchVideoDetailsByIds(videoIds, apiKey)
+
+    return capped.map((item) => {
+      const videoId = item.snippet.resourceId.videoId
+      const details = detailsMap.get(videoId)
+      const thumbs = item.snippet.thumbnails
+      const detailThumbs = details?.snippet?.thumbnails
+      return {
+        video_id: videoId,
+        title: item.snippet.title,
+        description: item.snippet.description || details?.snippet?.description || '',
+        thumbnail_url: thumbs?.high?.url || thumbs?.medium?.url || detailThumbs?.high?.url,
+        published_at: item.snippet.publishedAt,
+        duration: details?.contentDetails?.duration,
+        view_count: details?.statistics?.viewCount
+          ? parseInt(details.statistics.viewCount, 10)
+          : 0,
+        like_count: details?.statistics?.likeCount
+          ? parseInt(details.statistics.likeCount, 10)
+          : 0,
+        comment_count: details?.statistics?.commentCount
+          ? parseInt(details.statistics.commentCount, 10)
+          : 0,
+      }
+    })
   }
 
-  const videoIds = searchData.items.map((v: { id: { videoId: string } }) => v.id.videoId).join(',')
-  const detailsRes = await fetch(
-    `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics,snippet&id=${videoIds}&key=${apiKey}`
-  )
-  const detailsData = await detailsRes.json()
+  return fetchChannelVideosViaSearch(youtubeChannelId, apiKey, maxVideos)
+}
 
-  return mapSearchResultsToVideos(searchData.items, detailsData.items)
+async function fetchChannelVideosViaSearch(
+  youtubeChannelId: string,
+  apiKey: string,
+  maxVideos: number
+): Promise<ChannelVideoRecord[]> {
+  const searchItems: Array<{ id: { videoId: string }; snippet: Record<string, unknown> }> = []
+  let pageToken: string | undefined
+
+  do {
+    const url = new URL('https://www.googleapis.com/youtube/v3/search')
+    url.searchParams.set('part', 'snippet')
+    url.searchParams.set('channelId', youtubeChannelId)
+    url.searchParams.set('type', 'video')
+    url.searchParams.set('order', 'date')
+    url.searchParams.set('maxResults', '50')
+    url.searchParams.set('key', apiKey)
+    if (pageToken) url.searchParams.set('pageToken', pageToken)
+
+    const searchRes = await fetch(url.toString())
+    const searchData = await searchRes.json()
+    if (!searchRes.ok || !searchData?.items?.length) break
+
+    searchItems.push(...searchData.items)
+    pageToken = searchData.nextPageToken as string | undefined
+  } while (pageToken && searchItems.length < maxVideos)
+
+  const capped = searchItems.slice(0, maxVideos)
+  if (!capped.length) return []
+
+  const videoIds = capped.map((v) => v.id.videoId)
+  const detailsMap = await fetchVideoDetailsByIds(videoIds, apiKey)
+  const detailItems = videoIds
+    .map((id) => detailsMap.get(id))
+    .filter((d): d is VideoDetailItem => !!d)
+
+  return mapSearchResultsToVideos(capped, detailItems)
 }
 
 export async function fetchChannelTopVideos(

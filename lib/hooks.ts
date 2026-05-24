@@ -234,6 +234,29 @@ export function useDashboardData() {
   }
 }
 
+/** Re-fetch all uploads from YouTube into the videos table. */
+export async function syncChannelVideos() {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not authenticated')
+
+  const response = await fetch('/api/channels/sync-videos', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  })
+
+  const text = await response.text()
+  let result: { error?: string; synced?: number; totalOnYouTube?: number }
+  try {
+    result = text ? JSON.parse(text) : {}
+  } catch {
+    throw new Error(`Server error (${response.status})`)
+  }
+  if (!response.ok) throw new Error(result.error || 'Failed to sync videos')
+  return result
+}
+
 /** Connect a YouTube channel via the Next.js API (uses Vercel env keys). */
 export async function initChannel(channelUrl: string) {
   const { data: { session } } = await supabase.auth.getSession()
