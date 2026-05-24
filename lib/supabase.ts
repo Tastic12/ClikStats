@@ -92,6 +92,50 @@ export interface VideoMetric {
   recorded_at: string
 }
 
+export interface CompetitorChannel {
+  id: string
+  user_id: string
+  youtube_channel_id: string
+  channel_name: string
+  channel_url: string
+  description?: string
+  thumbnail_url?: string
+  subscriber_count?: number
+  video_count?: number
+  view_count?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface CompetitorChannelVideo {
+  id: string
+  user_id: string
+  competitor_channel_id: string
+  video_id: string
+  title: string
+  thumbnail_url?: string
+  published_at: string
+  view_count?: number
+  like_count?: number
+  comment_count?: number
+  created_at: string
+}
+
+export interface CompetitorVideo {
+  id: string
+  user_id: string
+  youtube_video_id: string
+  title: string
+  channel_name?: string
+  thumbnail_url?: string
+  published_at?: string
+  view_count?: number
+  like_count?: number
+  comment_count?: number
+  created_at: string
+  updated_at: string
+}
+
 export type Database = {
   public: {
     Tables: {

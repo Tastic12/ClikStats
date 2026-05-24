@@ -56,34 +56,34 @@ export async function POST(request: Request) {
       youtubeApiKey
     )
 
+    // One owned channel per user — replace any previous connection
+    const { data: existing } = await admin.from('channels').select('id').eq('user_id', user.id)
+    if (existing?.length) {
+      const ids = existing.map((c) => c.id)
+      await admin.from('videos').delete().in('channel_id', ids)
+      await admin.from('channel_metrics').delete().in('channel_id', ids)
+      await admin.from('channels').delete().eq('user_id', user.id)
+    }
+
     const { data: channelRecord, error: channelError } = await admin
       .from('channels')
-      .upsert(
-        {
-          user_id: user.id,
-          channel_id: youtubeChannelId,
-          channel_name: channel.snippet.title,
-          channel_url: channelUrl,
-          description: channel.snippet.description,
-          thumbnail_url:
-            channel.snippet.thumbnails.high?.url || channel.snippet.thumbnails.medium?.url,
-          subscriber_count: parseInt(channel.statistics.subscriberCount, 10) || 0,
-          video_count: parseInt(channel.statistics.videoCount, 10) || 0,
-          view_count: parseInt(channel.statistics.viewCount, 10) || 0,
-        },
-        { onConflict: 'channel_id' }
-      )
+      .insert({
+        user_id: user.id,
+        channel_id: youtubeChannelId,
+        channel_name: channel.snippet.title,
+        channel_url: channelUrl,
+        description: channel.snippet.description,
+        thumbnail_url:
+          channel.snippet.thumbnails.high?.url || channel.snippet.thumbnails.medium?.url,
+        subscriber_count: parseInt(channel.statistics.subscriberCount, 10) || 0,
+        video_count: parseInt(channel.statistics.videoCount, 10) || 0,
+        view_count: parseInt(channel.statistics.viewCount, 10) || 0,
+      })
       .select()
       .single()
 
     if (channelError) {
-      console.error('channel upsert error', channelError)
-      if (channelError.code === '23505') {
-        return NextResponse.json(
-          { error: 'This channel is already tracked by another account.' },
-          { status: 409 }
-        )
-      }
+      console.error('channel insert error', channelError)
       return NextResponse.json({ error: 'Failed to save channel' }, { status: 500 })
     }
 

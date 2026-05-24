@@ -5,9 +5,8 @@ import { usePathname } from 'next/navigation'
 import { ProfileMenu } from './ProfileMenu'
 
 const navItems = [
-  { href: '/dashboard', label: 'Overview' },
-  { href: '/tracking', label: 'Videos' },
-  { href: '/onboarding', label: 'Add channel' },
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/tracking/my-videos', label: 'Tracking' },
 ]
 
 type DashboardShellProps = {
@@ -43,7 +42,8 @@ export function DashboardShell({ children, email, onSignOut }: DashboardShellPro
         <aside className="hidden w-48 flex-shrink-0 md:block">
           <nav className="space-y-1">
             {navItems.map((item) => {
-              const active = pathname === item.href
+              const active =
+                pathname === item.href || pathname.startsWith('/tracking')
               return (
                 <Link
                   key={item.href}

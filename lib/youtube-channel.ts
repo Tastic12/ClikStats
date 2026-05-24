@@ -121,8 +121,38 @@ export async function fetchChannelVideos(
   )
   const detailsData = await detailsRes.json()
 
-  return searchData.items.map((video: { id: { videoId: string }; snippet: Record<string, unknown> }) => {
-    const details = detailsData.items?.find((d: { id: string }) => d.id === video.id.videoId)
+  return mapSearchResultsToVideos(searchData.items, detailsData.items)
+}
+
+export async function fetchChannelTopVideos(
+  youtubeChannelId: string,
+  apiKey: string,
+  maxResults = 5
+): Promise<ChannelVideoRecord[]> {
+  const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${youtubeChannelId}&type=video&order=viewCount&maxResults=${maxResults}&key=${apiKey}`
+  const searchRes = await fetch(searchUrl)
+  const searchData = await searchRes.json()
+  if (!searchRes.ok || !searchData?.items?.length) return []
+
+  const videoIds = searchData.items.map((v: { id: { videoId: string } }) => v.id.videoId).join(',')
+  const detailsRes = await fetch(
+    `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics,snippet&id=${videoIds}&key=${apiKey}`
+  )
+  const detailsData = await detailsRes.json()
+  return mapSearchResultsToVideos(searchData.items, detailsData.items)
+}
+
+function mapSearchResultsToVideos(
+  searchItems: Array<{ id: { videoId: string }; snippet: Record<string, unknown> }>,
+  detailItems: Array<{
+    id: string
+    contentDetails?: { duration?: string }
+    statistics?: { viewCount?: string; likeCount?: string; commentCount?: string }
+    snippet?: { thumbnails?: { high?: { url: string }; medium?: { url: string } } }
+  }>
+) {
+  return searchItems.map((video: { id: { videoId: string }; snippet: Record<string, unknown> }) => {
+    const details = detailItems?.find((d) => d.id === video.id.videoId)
     const thumbs = video.snippet.thumbnails as { high?: { url: string }; medium?: { url: string } }
     const detailThumbs = details?.snippet?.thumbnails as { high?: { url: string }; medium?: { url: string } } | undefined
     return {
@@ -137,4 +167,42 @@ export async function fetchChannelVideos(
       comment_count: details?.statistics?.commentCount ? parseInt(details.statistics.commentCount, 10) : 0,
     }
   })
+}
+
+export function parseVideoInput(input: string): string | null {
+  const trimmed = input.trim()
+  const patterns = [
+    /youtube\.com\/watch\?v=([\w-]+)/i,
+    /youtu\.be\/([\w-]+)/i,
+    /youtube\.com\/embed\/([\w-]+)/i,
+    /youtube\.com\/shorts\/([\w-]+)/i,
+  ]
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern)
+    if (match) return match[1]
+  }
+  if (/^[\w-]{11}$/.test(trimmed)) return trimmed
+  return null
+}
+
+export async function fetchYouTubeVideo(videoId: string, apiKey: string) {
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoId}&key=${apiKey}`
+  )
+  const data = await res.json()
+  if (!res.ok) throw new Error(data?.error?.message || 'YouTube API request failed')
+  const item = data?.items?.[0]
+  if (!item) throw new Error('Video not found')
+
+  const thumbs = item.snippet.thumbnails as { high?: { url: string }; medium?: { url: string } }
+  return {
+    youtube_video_id: item.id as string,
+    title: item.snippet.title as string,
+    channel_name: item.snippet.channelTitle as string,
+    thumbnail_url: thumbs?.high?.url || thumbs?.medium?.url,
+    published_at: item.snippet.publishedAt as string,
+    view_count: parseInt(item.statistics.viewCount, 10) || 0,
+    like_count: parseInt(item.statistics.likeCount, 10) || 0,
+    comment_count: parseInt(item.statistics.commentCount, 10) || 0,
+  }
 }
