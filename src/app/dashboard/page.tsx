@@ -1,40 +1,51 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
+import type { User as AuthUser } from '@supabase/supabase-js'
 import { supabase } from '../../../lib/supabase'
-import { useChannels, useChannelMetrics, useVideos } from '../../../lib/hooks'
-import { ChannelMetricsChart, TopVideosChart, ChannelDistributionChart, MetricCard } from '../../components/Charts'
 import type { Channel } from '../../../lib/supabase'
+import {
+  useChannels,
+  useChannelMetrics,
+  useVideos,
+  getTopVideos,
+  getLatestVideo,
+} from '../../../lib/hooks'
+import { MetricCard } from '../../components/Charts'
+import { DashboardShell } from '../../components/DashboardShell'
+import { AddChannelForm } from '../../components/AddChannelForm'
+import { TopVideosList } from '../../components/TopVideosList'
+import { formatCount } from '@/lib/format'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null)
 
-  const { channels, isLoading: channelsLoading } = useChannels()
-  const { metrics: channelMetrics, isLoading: metricsLoading } = useChannelMetrics(selectedChannel?.id)
-  const { videos, isLoading: videosLoading } = useVideos(selectedChannel?.id)
+  const { channels, isLoading: channelsLoading, mutate: mutateChannels } = useChannels()
+  const { metrics: channelMetrics, isLoading: metricsLoading } = useChannelMetrics(
+    selectedChannel?.id
+  )
+  const { videos, isLoading: videosLoading, mutate: mutateVideos } = useVideos(
+    selectedChannel?.id
+  )
 
   useEffect(() => {
-    // Get initial user
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
+    supabase.auth.getUser().then(({ data: { user: u } }) => {
+      if (!u) {
         router.push('/auth')
         return
       }
-      setUser(user)
+      setUser(u)
     })
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      if (!session?.user) {
-        router.push('/auth')
-        return
-      }
-      setUser(session.user)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) router.push('/auth')
+      else setUser(session.user)
     })
 
     return () => subscription.unsubscribe()
@@ -46,128 +57,78 @@ export default function DashboardPage() {
     }
   }, [channels, selectedChannel])
 
-  if (!user) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="text-lg">Loading...</div>
-    </div>
+  const handleChannelAdded = () => {
+    mutateChannels()
+    mutateVideos()
   }
 
-  const totalSubscribers = channels?.reduce((sum: number, channel: Channel) => sum + (channel.subscriber_count || 0), 0) || 0
-  const totalViews = channels?.reduce((sum: number, channel: Channel) => sum + (channel.view_count || 0), 0) || 0
-  const totalVideos = channels?.reduce((sum: number, channel: Channel) => sum + (channel.video_count || 0), 0) || 0
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
 
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-gray-600">Loading…</p>
+      </div>
+    )
+  }
+
+  const topVideos = getTopVideos(videos, 5)
+  const latestVideo = getLatestVideo(videos)
   const latestMetrics = channelMetrics?.[0]
   const previousMetrics = channelMetrics?.[1]
-  
-  const subscriberChange = latestMetrics && previousMetrics 
-    ? latestMetrics.subscriber_count - previousMetrics.subscriber_count 
-    : 0
-
-  const viewChange = latestMetrics && previousMetrics 
-    ? latestMetrics.view_count - previousMetrics.view_count 
-    : 0
+  const subscriberChange =
+    latestMetrics && previousMetrics
+      ? latestMetrics.subscriber_count - previousMetrics.subscriber_count
+      : 0
+  const viewChange =
+    latestMetrics && previousMetrics
+      ? latestMetrics.view_count - previousMetrics.view_count
+      : 0
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/" className="text-xl font-bold text-gray-900">
-                YouTube Analytics Pro
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="text-blue-600 font-medium">
-                Dashboard
-              </Link>
-              <Link href="/tracking" className="text-gray-700 hover:text-gray-900">
-                Tracking
-              </Link>
-              <button
-                onClick={() => supabase.auth.signOut()}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="px-4 py-6 sm:px-0">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            {(!channels || channels.length === 0) && (
-              <Link 
-                href="/onboarding"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium"
-              >
-                Add Channel
-              </Link>
-            )}
-          </div>
+    <DashboardShell email={user.email} onSignOut={handleSignOut}>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Track subscribers, views, and how your latest videos are performing.
+          </p>
         </div>
 
         {channelsLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-lg text-gray-600">Loading channels...</div>
-          </div>
-        ) : !channels || channels.length === 0 ? (
-          <div className="text-center py-12">
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No channels</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by adding your first YouTube channel.</p>
-            <div className="mt-6">
-              <Link 
-                href="/onboarding"
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                Add Channel
-              </Link>
+          <p className="text-gray-600 py-12 text-center">Loading your channels…</p>
+        ) : !channels?.length ? (
+          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8">
+            <h2 className="text-lg font-semibold text-gray-900">Connect your YouTube channel</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Paste your channel URL to start tracking subscribers, views, and video performance.
+            </p>
+            <div className="mt-6 max-w-lg">
+              <AddChannelForm onSuccess={handleChannelAdded} />
             </div>
           </div>
         ) : (
           <>
-            {/* Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <MetricCard
-                title="Total Subscribers"
-                value={totalSubscribers}
-                format="subscribers"
-              />
-              <MetricCard
-                title="Total Views"
-                value={totalViews}
-                format="views"
-              />
-              <MetricCard
-                title="Total Videos"
-                value={totalVideos}
-                format="number"
-              />
-            </div>
-
-            {/* Channel Selector */}
             {channels.length > 1 && (
-              <div className="mb-6">
-                <label htmlFor="channel-select" className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Channel
+              <div>
+                <label htmlFor="channel-select" className="block text-sm font-medium text-gray-700 mb-1">
+                  Active channel
                 </label>
                 <select
                   id="channel-select"
                   value={selectedChannel?.id || ''}
                   onChange={(e) => {
-                    const channel = channels.find(c => c.id === e.target.value)
-                    setSelectedChannel(channel || null)
+                    const ch = channels.find((c) => c.id === e.target.value)
+                    setSelectedChannel(ch || null)
                   }}
-                  className="block w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="max-w-md w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 >
-                  {channels.map((channel) => (
-                    <option key={channel.id} value={channel.id}>
-                      {channel.channel_name}
+                  {channels.map((ch) => (
+                    <option key={ch.id} value={ch.id}>
+                      {ch.channel_name}
                     </option>
                   ))}
                 </select>
@@ -176,106 +137,116 @@ export default function DashboardPage() {
 
             {selectedChannel && (
               <>
-                {/* Selected Channel Overview */}
-                <div className="bg-white shadow rounded-lg p-6 mb-8">
-                  <div className="flex items-center mb-4">
+                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     {selectedChannel.thumbnail_url && (
-                      <img 
-                        src={selectedChannel.thumbnail_url} 
-                        alt={selectedChannel.channel_name}
-                        className="w-16 h-16 rounded-full mr-4"
+                      <img
+                        src={selectedChannel.thumbnail_url}
+                        alt=""
+                        className="h-20 w-20 rounded-full object-cover ring-2 ring-gray-100"
                       />
                     )}
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">{selectedChannel.channel_name}</h2>
-                      <p className="text-gray-600">{selectedChannel.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-blue-600">
+                        Connected channel
+                      </p>
+                      <h2 className="text-xl font-bold text-gray-900 truncate">
+                        {selectedChannel.channel_name}
+                      </h2>
+                      <a
+                        href={selectedChannel.channel_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline truncate block"
+                      >
+                        {selectedChannel.channel_url}
+                      </a>
+                    </div>
+                    <Link
+                      href="/onboarding"
+                      className="text-sm font-medium text-gray-600 hover:text-gray-900 whitespace-nowrap"
+                    >
+                      + Add another
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <MetricCard
+                    title="Subscribers"
+                    value={selectedChannel.subscriber_count || 0}
+                    change={subscriberChange}
+                    format="subscribers"
+                  />
+                  <MetricCard
+                    title="Total views"
+                    value={selectedChannel.view_count || 0}
+                    change={viewChange}
+                    format="views"
+                  />
+                  <MetricCard
+                    title="Videos"
+                    value={selectedChannel.video_count || 0}
+                    format="number"
+                  />
+                </div>
+
+                {latestVideo && (
+                  <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Latest upload</h3>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      {latestVideo.thumbnail_url && (
+                        <img
+                          src={latestVideo.thumbnail_url}
+                          alt=""
+                          className="w-full sm:w-48 aspect-video object-cover rounded-lg bg-gray-100"
+                        />
+                      )}
+                      <div>
+                        <p className="font-medium text-gray-900">{latestVideo.title}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Published {new Date(latestVideo.published_at).toLocaleDateString()}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-4 text-sm">
+                          <span className="text-gray-700">
+                            <strong>{formatCount(latestVideo.view_count || 0)}</strong> views
+                          </span>
+                          <span className="text-gray-700">
+                            <strong>{formatCount(latestVideo.like_count || 0)}</strong> likes
+                          </span>
+                          <span className="text-gray-700">
+                            <strong>{formatCount(latestVideo.comment_count || 0)}</strong> comments
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <MetricCard
-                      title="Subscribers"
-                      value={selectedChannel.subscriber_count || 0}
-                      change={subscriberChange}
-                      format="subscribers"
-                    />
-                    <MetricCard
-                      title="Total Views"
-                      value={selectedChannel.view_count || 0}
-                      change={viewChange}
-                      format="views"
-                    />
-                    <MetricCard
-                      title="Videos"
-                      value={selectedChannel.video_count || 0}
-                      format="number"
-                    />
-                  </div>
-                </div>
+                )}
 
-                {/* Charts Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                  {/* Subscriber Growth */}
-                  <div className="bg-white shadow rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Subscriber Growth</h3>
-                    {metricsLoading ? (
-                      <div className="flex items-center justify-center h-64">
-                        <div className="text-gray-600">Loading metrics...</div>
-                      </div>
-                    ) : channelMetrics && channelMetrics.length > 0 ? (
-                      <ChannelMetricsChart metrics={channelMetrics} metricType="subscriber_count" />
-                    ) : (
-                      <div className="flex items-center justify-center h-64 text-gray-500">
-                        No metric data available
-                      </div>
-                    )}
+                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Top 5 videos</h3>
+                    <Link href="/tracking" className="text-sm font-medium text-blue-600 hover:underline">
+                      View all →
+                    </Link>
                   </div>
-
-                  {/* View Count Growth */}
-                  <div className="bg-white shadow rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">View Count Growth</h3>
-                    {metricsLoading ? (
-                      <div className="flex items-center justify-center h-64">
-                        <div className="text-gray-600">Loading metrics...</div>
-                      </div>
-                    ) : channelMetrics && channelMetrics.length > 0 ? (
-                      <ChannelMetricsChart metrics={channelMetrics} metricType="view_count" />
-                    ) : (
-                      <div className="flex items-center justify-center h-64 text-gray-500">
-                        No metric data available
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Top Videos */}
-                <div className="bg-white shadow rounded-lg p-6 mb-8">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Top Videos</h3>
                   {videosLoading ? (
-                    <div className="flex items-center justify-center h-64">
-                      <div className="text-gray-600">Loading videos...</div>
-                    </div>
-                  ) : videos && videos.length > 0 ? (
-                    <TopVideosChart videos={videos} />
+                    <p className="text-sm text-gray-500 py-8 text-center">Loading videos…</p>
                   ) : (
-                    <div className="flex items-center justify-center h-64 text-gray-500">
-                      No videos available
-                    </div>
+                    <TopVideosList videos={topVideos} />
                   )}
                 </div>
-              </>
-            )}
 
-            {/* Channel Distribution (if multiple channels) */}
-            {channels.length > 1 && (
-              <div className="bg-white shadow rounded-lg p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Channel Distribution</h3>
-                <ChannelDistributionChart channels={channels} />
-              </div>
+                {!metricsLoading && channelMetrics && channelMetrics.length > 1 && (
+                  <p className="text-xs text-gray-500 text-center">
+                    Historical charts available on the Videos page. Daily updates run via Supabase cron.
+                  </p>
+                )}
+              </>
             )}
           </>
         )}
       </div>
-    </div>
+    </DashboardShell>
   )
-} 
+}

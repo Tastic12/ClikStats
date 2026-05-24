@@ -64,7 +64,11 @@ export default function AuthPage() {
         if (error) throw error
 
         if (data.user) {
-          router.push('/dashboard')
+          const { count } = await supabase
+            .from('channels')
+            .select('*', { count: 'exact', head: true })
+
+          router.push(count && count > 0 ? '/dashboard' : '/onboarding')
         }
       }
     } catch (error: unknown) {

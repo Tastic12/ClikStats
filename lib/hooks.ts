@@ -1,6 +1,63 @@
 import useSWR from 'swr'
 import { supabase } from './supabase'
-import type { Channel, Video, ChannelMetric, VideoMetric } from './supabase'
+import type { Channel, Video, ChannelMetric, VideoMetric, User } from './supabase'
+
+export function useUserProfile() {
+  const { data, error, mutate } = useSWR<User | null>('user-profile', async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (error) throw error
+    return data
+  })
+
+  const updateDisplayName = async (displayName: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const trimmed = displayName.trim()
+    if (!trimmed) throw new Error('Profile name cannot be empty')
+
+    const { data, error } = await supabase
+      .from('users')
+      .update({ display_name: trimmed })
+      .eq('id', user.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    await mutate(data, false)
+    return data
+  }
+
+  return {
+    profile: data,
+    isLoading: !error && data === undefined,
+    isError: error,
+    updateDisplayName,
+    mutate,
+  }
+}
+
+export function getTopVideos(videos: Video[] | undefined, limit = 5) {
+  if (!videos?.length) return []
+  return [...videos]
+    .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+    .slice(0, limit)
+}
+
+export function getLatestVideo(videos: Video[] | undefined) {
+  if (!videos?.length) return null
+  return [...videos].sort(
+    (a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
+  )[0]
+}
 
 // Hook for fetching user's channels
 export function useChannels() {
