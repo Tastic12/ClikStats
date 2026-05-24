@@ -13,15 +13,18 @@ type DashboardShellProps = {
   children: React.ReactNode
   email?: string
   onSignOut: () => void
+  /** Use full content width (tracking compare views) */
+  wide?: boolean
 }
 
-export function DashboardShell({ children, email, onSignOut }: DashboardShellProps) {
+export function DashboardShell({ children, email, onSignOut, wide }: DashboardShellProps) {
   const pathname = usePathname()
+  const contentMax = wide ? 'max-w-[1600px]' : 'max-w-7xl'
 
   return (
     <div className="min-h-screen bg-[var(--app-bg)]">
       <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className={`mx-auto flex h-14 ${contentMax} items-center justify-between px-4 sm:px-6 lg:px-8`}>
           <Link href="/dashboard" className="text-lg font-bold text-[var(--foreground)]">
             Clik<span className="text-[var(--accent)]">Stats</span>
           </Link>
@@ -38,7 +41,7 @@ export function DashboardShell({ children, email, onSignOut }: DashboardShellPro
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:px-8">
+      <div className={`mx-auto flex ${contentMax} gap-8 px-4 py-6 sm:px-6 lg:px-8`}>
         <aside className="hidden w-48 flex-shrink-0 md:block">
           <nav className="space-y-1">
             {navItems.map((item) => {

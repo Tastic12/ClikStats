@@ -25,25 +25,27 @@ export function CompetitorCompare({
     leadingChannel ||
     [...channels].sort((a, b) => (b.subscriber_count || 0) - (a.subscriber_count || 0))[0]
 
-  const columnMin = viewMode === 'grid' ? 120 : 160
+  const columnCount = channels.length
 
   return (
-    <div className="space-y-4">
+    <div className="w-full space-y-6">
       {leader && (
-        <div className="rounded-lg border border-[var(--success)]/50 bg-[var(--elevated)] px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase text-[var(--success)]">Leading channel</p>
-          <div className="mt-1 flex items-center gap-2">
+        <div className="rounded-lg border border-[var(--success)]/50 bg-[var(--elevated)] px-4 py-3">
+          <p className="text-xs font-semibold uppercase text-[var(--success)]">Leading channel</p>
+          <div className="mt-2 flex items-center gap-3">
             {leader.thumbnail_url && (
               <img
                 src={leader.thumbnail_url}
                 alt=""
-                className="h-8 w-8 rounded-full object-cover ring-1 ring-[var(--success)]"
+                className="h-10 w-10 rounded-full object-cover ring-2 ring-[var(--success)]"
               />
             )}
             <div className="min-w-0">
-              <p className="text-sm font-bold text-[var(--foreground)] truncate">{leader.channel_name}</p>
-              <p className="text-xs text-[var(--muted)]">
-                {formatCount(leader.subscriber_count || 0)} subs ·{' '}
+              <p className="text-base font-bold text-[var(--foreground)] truncate">
+                {leader.channel_name}
+              </p>
+              <p className="text-sm text-[var(--muted)]">
+                {formatCount(leader.subscriber_count || 0)} subscribers ·{' '}
                 {formatCount(leader.view_count || 0)} views
               </p>
             </div>
@@ -51,110 +53,87 @@ export function CompetitorCompare({
         </div>
       )}
 
-      <div>
-        <p className="text-xs font-medium text-[var(--muted)] mb-2">Channel comparison</p>
+      <div className="w-full">
+        <p className="text-sm font-medium text-[var(--foreground)] mb-3">Channel comparison</p>
         <ChannelSnapshotComparisonChart channels={channels} />
       </div>
 
-      <div>
-        <p className="text-xs font-medium text-[var(--muted)] mb-2">Top 5 videos — side by side</p>
-        <div className="overflow-x-auto pb-1 -mx-1 px-1">
-          {viewMode === 'list' ? (
-            <div className="space-y-4 min-w-0">
-              {channels.map((ch) => {
-                const top = (videosByChannel[ch.id] || []).slice(0, 5)
-                return (
-                  <div key={ch.id} className="rounded-lg border border-[var(--border)] bg-[var(--elevated)] p-2">
-                    <a
-                      href={ch.channel_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mb-2 flex items-center gap-2 group"
-                    >
-                      {ch.thumbnail_url ? (
-                        <img
-                          src={ch.thumbnail_url}
-                          alt=""
-                          className="h-7 w-7 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-7 w-7 rounded-full bg-[var(--card)]" />
-                      )}
-                      <span className="text-xs font-semibold text-[var(--foreground)] group-hover:text-[var(--accent)] truncate">
-                        {ch.channel_name}
-                      </span>
-                    </a>
-                    <VideoResultsLayout
-                      viewMode="list"
-                      compact
-                      maxItems={5}
-                      videos={top.map((v) => ({
-                        id: v.id,
-                        videoId: v.video_id,
-                        title: v.title,
-                        thumbnailUrl: v.thumbnail_url,
-                        views: v.view_count,
-                        likes: v.like_count,
-                        comments: v.comment_count,
-                      }))}
-                    />
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div
-              className="grid gap-2 min-w-max"
-              style={{
-                gridTemplateColumns: `repeat(${channels.length}, minmax(${columnMin}px, 1fr))`,
-              }}
-            >
-              {channels.map((ch) => {
-                const top = (videosByChannel[ch.id] || []).slice(0, 5)
-                return (
-                  <div
-                    key={ch.id}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--elevated)] p-2 min-w-0"
-                  >
-                    <a
-                      href={ch.channel_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mb-2 flex items-center gap-1.5 group min-w-0"
-                    >
-                      {ch.thumbnail_url ? (
-                        <img
-                          src={ch.thumbnail_url}
-                          alt=""
-                          className="h-6 w-6 shrink-0 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-6 w-6 shrink-0 rounded-full bg-[var(--card)]" />
-                      )}
-                      <span className="text-[11px] font-semibold text-[var(--foreground)] group-hover:text-[var(--accent)] truncate">
-                        {ch.channel_name}
-                      </span>
-                    </a>
-                    <VideoResultsLayout
-                      viewMode="grid"
-                      compact
-                      maxItems={5}
-                      videos={top.map((v) => ({
-                        id: v.id,
-                        videoId: v.video_id,
-                        title: v.title,
-                        thumbnailUrl: v.thumbnail_url,
-                        views: v.view_count,
-                        likes: v.like_count,
-                        comments: v.comment_count,
-                      }))}
-                    />
-                  </div>
-                )
-              })}
-            </div>
-          )}
+      <div className="w-full">
+        <p className="text-sm font-medium text-[var(--foreground)] mb-3">
+          Top 5 videos — side by side ({columnCount} channel{columnCount === 1 ? '' : 's'})
+        </p>
+
+        <div className="w-full overflow-x-auto">
+          <div
+            className="grid w-full gap-3 xl:gap-4"
+            style={{
+              gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+              minWidth: columnCount > 5 ? `${columnCount * 11}rem` : undefined,
+            }}
+          >
+            {channels.map((ch) => {
+              const top = (videosByChannel[ch.id] || []).slice(0, 5)
+              return (
+                <ChannelColumn
+                  key={ch.id}
+                  channel={ch}
+                  videos={top}
+                  viewMode={viewMode}
+                />
+              )
+            })}
+          </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function ChannelColumn({
+  channel,
+  videos,
+  viewMode,
+}: {
+  channel: CompetitorChannel
+  videos: CompetitorChannelVideo[]
+  viewMode: ViewMode
+}) {
+  return (
+    <div className="min-w-0 flex flex-col border border-[var(--border)] rounded-lg bg-[var(--elevated)]/50 overflow-hidden">
+      <a
+        href={channel.channel_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 px-3 py-3 border-b border-[var(--border)] bg-[var(--elevated)] group shrink-0"
+      >
+        {channel.thumbnail_url ? (
+          <img
+            src={channel.thumbnail_url}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-[var(--border)] group-hover:ring-[var(--accent)]"
+          />
+        ) : (
+          <div className="h-9 w-9 shrink-0 rounded-full bg-[var(--card)]" />
+        )}
+        <span className="text-sm font-semibold text-[var(--foreground)] group-hover:text-[var(--accent)] line-clamp-2 leading-tight">
+          {channel.channel_name}
+        </span>
+      </a>
+      <div className="p-2 sm:p-3 flex-1 min-w-0">
+        <VideoResultsLayout
+          viewMode={viewMode}
+          columnStack={viewMode === 'grid'}
+          maxItems={5}
+          videos={videos.map((v) => ({
+            id: v.id,
+            videoId: v.video_id,
+            title: v.title,
+            thumbnailUrl: v.thumbnail_url,
+            views: v.view_count,
+            likes: v.like_count,
+            comments: v.comment_count,
+          }))}
+        />
       </div>
     </div>
   )

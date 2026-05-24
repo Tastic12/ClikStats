@@ -104,6 +104,7 @@ export default function CompetitorVideosPage() {
 
   return (
     <DashboardShell
+      wide
       email={user.email}
       onSignOut={async () => {
         await supabase.auth.signOut()
@@ -111,7 +112,7 @@ export default function CompetitorVideosPage() {
       }}
     >
       <TrackingLayout>
-        <div className="space-y-6">
+        <div className="space-y-6 w-full">
           <CategoryTabs
             categories={(groups || []).map((g) => ({ id: g.id, name: g.name }))}
             selectedId={categoryId}
@@ -149,7 +150,7 @@ export default function CompetitorVideosPage() {
               No videos in this category match your filters.
             </p>
           ) : (
-            <div className="cs-card overflow-hidden">
+            <div className="w-full border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--surface)]">
               <TrackingToolbar
                 title={`${filtered.length} video${filtered.length === 1 ? '' : 's'}`}
                 viewMode={viewMode}
@@ -159,14 +160,14 @@ export default function CompetitorVideosPage() {
                 showComments
               />
 
-              <div className="p-4 space-y-6">
+              <div className="w-full px-3 py-5 sm:px-5 space-y-8">
                 {filtered.length > 1 && (
                   <CompetitorVideosCompare videos={filtered} viewMode={viewMode} />
                 )}
 
-                <div>
-                  <h3 className="text-xs font-medium text-[var(--muted)] mb-2">
-                    {filtered.length === 1 ? 'Video' : 'Focus on one video'}
+                <div className="border-t border-[var(--border)] pt-6">
+                  <h3 className="text-sm font-medium text-[var(--foreground)] mb-3">
+                    {filtered.length === 1 ? 'Video details' : 'Focus on one video'}
                   </h3>
                   <ItemTabs
                     items={filtered.map((v) => ({
@@ -180,7 +181,7 @@ export default function CompetitorVideosPage() {
                 </div>
 
                 {selected && (
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--elevated)] p-4">
+                  <div className="border-t border-[var(--border)] pt-6">
                     <div
                       className={
                         viewMode === 'grid'

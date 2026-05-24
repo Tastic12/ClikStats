@@ -111,6 +111,7 @@ export default function CompetitorChannelsPage() {
 
   return (
     <DashboardShell
+      wide
       email={user.email}
       onSignOut={async () => {
         await supabase.auth.signOut()
@@ -118,7 +119,7 @@ export default function CompetitorChannelsPage() {
       }}
     >
       <TrackingLayout>
-        <div className="space-y-6">
+        <div className="space-y-6 w-full">
           <CategoryTabs
             categories={(groups || []).map((g) => ({ id: g.id, name: g.name }))}
             selectedId={categoryId}
@@ -156,7 +157,7 @@ export default function CompetitorChannelsPage() {
               No channels in this category match your filters. Add a channel or try another category.
             </p>
           ) : (
-            <div className="cs-card overflow-hidden">
+            <div className="w-full border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--surface)]">
               <TrackingToolbar
                 title={`${filtered.length} channel${filtered.length === 1 ? '' : 's'}`}
                 viewMode={viewMode}
@@ -167,18 +168,16 @@ export default function CompetitorChannelsPage() {
                 showVideoCount
               />
 
-              <div className="p-4 space-y-6">
-                {filtered.length > 1 && (
-                  <CompetitorCompare
-                    channels={filtered}
-                    videosByChannel={videosByChannel}
-                    viewMode={viewMode}
-                  />
-                )}
+              <div className="w-full px-3 py-5 sm:px-5 space-y-8">
+                <CompetitorCompare
+                  channels={filtered}
+                  videosByChannel={videosByChannel}
+                  viewMode={viewMode}
+                />
 
-                <div>
-                  <h3 className="text-xs font-medium text-[var(--muted)] mb-2">
-                    {filtered.length === 1 ? 'Channel' : 'Focus on one channel'}
+                <div className="border-t border-[var(--border)] pt-6">
+                  <h3 className="text-sm font-medium text-[var(--foreground)] mb-3">
+                    {filtered.length === 1 ? 'Channel details' : 'Focus on one channel'}
                   </h3>
                   <ItemTabs
                     items={filtered.map((c) => ({
@@ -192,8 +191,8 @@ export default function CompetitorChannelsPage() {
                 </div>
 
                 {selected && (
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--elevated)] p-4 space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-3 items-start">
+                  <div className="border-t border-[var(--border)] pt-6 space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-4 items-start">
                       {selected.thumbnail_url && (
                         <a
                           href={selected.channel_url}
@@ -204,12 +203,12 @@ export default function CompetitorChannelsPage() {
                           <img
                             src={selected.thumbnail_url}
                             alt=""
-                            className="h-16 w-16 rounded-full object-cover ring-2 ring-[var(--accent)] hover:opacity-90"
+                            className="h-20 w-20 rounded-full object-cover ring-2 ring-[var(--accent)] hover:opacity-90"
                           />
                         </a>
                       )}
                       <div>
-                        <h3 className="text-lg font-bold text-[var(--foreground)]">
+                        <h3 className="text-xl font-bold text-[var(--foreground)]">
                           {selected.channel_name}
                         </h3>
                         <a
@@ -220,7 +219,7 @@ export default function CompetitorChannelsPage() {
                         >
                           View on YouTube ↗
                         </a>
-                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-[var(--muted-2)]">
+                        <div className="mt-2 flex flex-wrap gap-4 text-sm text-[var(--muted-2)]">
                           <span>{formatCount(selected.subscriber_count || 0)} subscribers</span>
                           <span>{formatCount(selected.view_count || 0)} views</span>
                           <span>{formatCount(selected.video_count || 0)} videos</span>
@@ -229,14 +228,14 @@ export default function CompetitorChannelsPage() {
                     </div>
 
                     <div>
-                      <h4 className="text-xs font-semibold text-[var(--foreground)] mb-2">
+                      <h4 className="text-sm font-semibold text-[var(--foreground)] mb-3">
                         Top 5 videos
                       </h4>
                       {videosLoading ? (
                         <p className="text-[var(--muted)] text-sm">Loading videos…</p>
                       ) : channelVideos && channelVideos.length > 0 ? (
                         <>
-                          <div className="mb-4">
+                          <div className="mb-5 max-w-3xl">
                             <TopVideosChart
                               videos={channelVideos.map((v) => ({
                                 title: v.title,
@@ -246,6 +245,7 @@ export default function CompetitorChannelsPage() {
                           </div>
                           <VideoResultsLayout
                             viewMode={viewMode}
+                            columnStack={viewMode === 'grid' && filtered.length === 1}
                             videos={channelVideos.map((v) => ({
                               id: v.id,
                               videoId: v.video_id,

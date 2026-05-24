@@ -19,6 +19,8 @@ type VideoResultsLayoutProps = {
   viewMode: ViewMode
   compact?: boolean
   maxItems?: number
+  /** One video per row — used in side-by-side channel columns */
+  columnStack?: boolean
 }
 
 export function VideoResultsLayout({
@@ -26,6 +28,7 @@ export function VideoResultsLayout({
   viewMode,
   compact = false,
   maxItems,
+  columnStack = false,
 }: VideoResultsLayoutProps) {
   const items = maxItems ? videos.slice(0, maxItems) : videos
 
@@ -49,6 +52,29 @@ export function VideoResultsLayout({
             rank={i + 1}
             layout="row"
             size={compact ? 'compact' : 'default'}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  if (columnStack) {
+    return (
+      <div className="flex flex-col gap-3 w-full min-w-0">
+        {items.map((v, i) => (
+          <VideoThumbnailLink
+            key={v.id}
+            videoId={v.videoId}
+            title={v.title}
+            thumbnailUrl={v.thumbnailUrl}
+            subtitle={v.subtitle}
+            views={v.views}
+            likes={v.likes}
+            comments={v.comments}
+            rank={i + 1}
+            layout="card"
+            size="default"
+            className="w-full"
           />
         ))}
       </div>
