@@ -182,8 +182,13 @@ export default function HomePage() {
 
       <footer className="border-t border-[var(--border)] px-4 sm:px-6 lg:px-8 xl:px-10 py-8">
         <p className="text-center text-sm text-[var(--muted)]">
-          © {new Date().getFullYear()} ClikStats. Built with Next.js, Supabase, and the YouTube Data
-          API.
+          © 2026{' '}
+          <a
+            href="https://clikstats.com"
+            className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+          >
+            clikstats.com
+          </a>
         </p>
       </footer>
     </div>
