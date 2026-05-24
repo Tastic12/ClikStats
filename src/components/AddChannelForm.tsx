@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { callEdgeFunction, extractChannelId } from '../../lib/hooks'
+import { initChannel } from '../../lib/hooks'
+import { parseChannelInput } from '../../lib/youtube-channel'
 
 type AddChannelFormProps = {
   onSuccess?: () => void
@@ -17,18 +18,14 @@ export function AddChannelForm({ onSuccess, compact }: AddChannelFormProps) {
     e.preventDefault()
     setError('')
 
-    const channelId = extractChannelId(channelUrl.trim())
-    if (!channelId) {
+    if (!parseChannelInput(channelUrl.trim())) {
       setError('Enter a valid YouTube channel URL (channel, @handle, /c/, or /user/).')
       return
     }
 
     setLoading(true)
     try {
-      await callEdgeFunction('init-channel', {
-        channelId,
-        channelUrl: channelUrl.trim(),
-      })
+      await initChannel(channelUrl.trim())
       setChannelUrl('')
       onSuccess?.()
     } catch (err) {

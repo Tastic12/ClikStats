@@ -1,6 +1,7 @@
 import useSWR from 'swr'
 import { supabase } from './supabase'
 import type { Channel, Video, ChannelMetric, VideoMetric, User } from './supabase'
+import { parseChannelInput } from './youtube-channel'
 
 export function useUserProfile() {
   const { data, error, mutate } = useSWR<User | null>('user-profile', async () => {
@@ -179,50 +180,88 @@ export function useDashboardData() {
   }
 }
 
-// Utility function to call edge functions
-export async function callEdgeFunction(functionName: string, payload: Record<string, unknown>) {
+/** Connect a YouTube channel via the Next.js API (uses Vercel env keys). */
+export async function initChannel(channelUrl: string) {
   const { data: { session } } = await supabase.auth.getSession()
-  
+
   if (!session) {
-    throw new Error('Not authenticated')
+    throw new Error('Not authenticated. Please sign in again.')
   }
-  
-  const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/${functionName}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`
-    },
-    body: JSON.stringify(payload)
-  })
-  
-  const result = await response.json()
-  
+
+  let response: Response
+  try {
+    response = await fetch('/api/channels/init', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ channel_url: channelUrl.trim() }),
+    })
+  } catch {
+    throw new Error(
+      'Could not reach the server. Check your connection and try again.'
+    )
+  }
+
+  const text = await response.text()
+  let result: { error?: string; success?: boolean }
+  try {
+    result = text ? JSON.parse(text) : {}
+  } catch {
+    throw new Error(
+      response.status === 404
+        ? 'Channel API not found. Redeploy the latest app version.'
+        : `Server error (${response.status}). Try again shortly.`
+    )
+  }
+
   if (!response.ok) {
-    throw new Error(result.error || 'Edge function call failed')
+    throw new Error(result.error || 'Failed to connect channel')
   }
-  
+
   return result
 }
 
-// Utility function to extract YouTube channel ID from URL
-export function extractChannelId(url: string): string | null {
-  const patterns = [
-    /youtube\.com\/channel\/([a-zA-Z0-9_-]+)/,
-    /youtube\.com\/c\/([a-zA-Z0-9_-]+)/,
-    /youtube\.com\/user\/([a-zA-Z0-9_-]+)/,
-    /youtube\.com\/@([a-zA-Z0-9_-]+)/
-  ]
-  
-  for (const pattern of patterns) {
-    const match = url.match(pattern)
-    if (match) {
-      return match[1]
-    }
+/** @deprecated Use initChannel() — edge functions optional */
+export async function callEdgeFunction(functionName: string, payload: Record<string, unknown>) {
+  if (functionName === 'init-channel') {
+    const url =
+      (payload.channel_url as string) ||
+      (payload.channelUrl as string) ||
+      ''
+    return initChannel(url)
   }
-  
-  return null
+
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not authenticated')
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!supabaseUrl) throw new Error('Supabase URL not configured')
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: anonKey ?? '',
+    },
+    body: JSON.stringify(payload),
+  })
+
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.error || 'Edge function call failed')
+  return result
 }
+
+// Utility function to extract YouTube channel ID from URL (legacy helper)
+export function extractChannelId(url: string): string | null {
+  const parsed = parseChannelInput(url)
+  return parsed?.value ?? null
+}
+
+export { parseChannelInput } from './youtube-channel'
 
 // Utility function to extract YouTube video ID from URL
 export function extractVideoId(url: string): string | null {
