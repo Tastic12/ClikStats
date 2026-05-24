@@ -1,9 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "npm install",
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "outputDirectory": ".next",
-  "rootDirectory": "youtube-analytics"
+  "installCommand": "cd youtube-analytics && npm install",
+  "buildCommand": "cd youtube-analytics && npm run build",
+  "outputDirectory": "youtube-analytics/.next"
 }
