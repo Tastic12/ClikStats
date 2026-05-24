@@ -92,6 +92,22 @@ export interface VideoMetric {
   recorded_at: string
 }
 
+export interface CompetitorChannelGroup {
+  id: string
+  user_id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
+
+export interface CompetitorVideoGroup {
+  id: string
+  user_id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
+
 export interface CompetitorChannel {
   id: string
   user_id: string
@@ -103,6 +119,7 @@ export interface CompetitorChannel {
   subscriber_count?: number
   video_count?: number
   view_count?: number
+  group_id?: string | null
   created_at: string
   updated_at: string
 }
@@ -132,6 +149,7 @@ export interface CompetitorVideo {
   view_count?: number
   like_count?: number
   comment_count?: number
+  group_id?: string | null
   created_at: string
   updated_at: string
 }

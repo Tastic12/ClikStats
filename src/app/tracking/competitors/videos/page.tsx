@@ -1,13 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../../../../../lib/supabase'
-import { useCompetitorVideos, initCompetitorVideo } from '../../../../../lib/hooks'
+import {
+  useCompetitorVideos,
+  useCompetitorVideoGroups,
+  initCompetitorVideo,
+} from '../../../../../lib/hooks'
 import { DashboardShell } from '../../../../components/DashboardShell'
 import { TrackingLayout } from '../../../../components/TrackingLayout'
+import { CategoryTabs, ALL_CATEGORIES_ID } from '../../../../components/CategoryTabs'
 import { ItemTabs } from '../../../../components/ItemTabs'
+import { CompetitorVideosCompare } from '../../../../components/CompetitorVideosCompare'
 import { VideoThumbnailLink } from '../../../../components/VideoThumbnailLink'
 import {
   MetricFilters,
@@ -24,9 +30,24 @@ export default function CompetitorVideosPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [filters, setFilters] = useState<MetricFiltersState>(defaultMetricFilters)
+  const [categoryId, setCategoryId] = useState<string | null>(ALL_CATEGORIES_ID)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const { videos, isLoading, mutate } = useCompetitorVideos()
+  const { groups, createGroup } = useCompetitorVideoGroups()
+
+  const inCategory = useMemo(() => {
+    const list = videos || []
+    if (categoryId === ALL_CATEGORIES_ID) return list
+    if (categoryId === null) return list.filter((v) => !v.group_id)
+    return list.filter((v) => v.group_id === categoryId)
+  }, [videos, categoryId])
+
+  const filtered = applyMetricFilters(inCategory, filters).sort(
+    (a, b) => (b.view_count || 0) - (a.view_count || 0)
+  )
+
+  const selected = filtered.find((v) => v.id === selectedId) || filtered[0] || null
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user: u } }) => {
@@ -34,12 +55,6 @@ export default function CompetitorVideosPage() {
       else setUser(u)
     })
   }, [router])
-
-  const filtered = applyMetricFilters(videos || [], filters).sort(
-    (a, b) => (b.view_count || 0) - (a.view_count || 0)
-  )
-
-  const selected = filtered.find((v) => v.id === selectedId) || filtered[0] || null
 
   useEffect(() => {
     if (filtered.length && !selectedId) setSelectedId(filtered[0].id)
@@ -53,7 +68,9 @@ export default function CompetitorVideosPage() {
     setLoading(true)
     setError('')
     try {
-      await initCompetitorVideo(url)
+      const groupForAdd =
+        categoryId && categoryId !== ALL_CATEGORIES_ID ? categoryId : null
+      await initCompetitorVideo(url, groupForAdd)
       setUrl('')
       mutate()
     } catch (err) {
@@ -62,6 +79,18 @@ export default function CompetitorVideosPage() {
       setLoading(false)
     }
   }
+
+  const handleCreateCategory = async (name: string) => {
+    const g = await createGroup(name)
+    setCategoryId(g.id)
+  }
+
+  const activeCategoryName =
+    categoryId === ALL_CATEGORIES_ID
+      ? 'All categories'
+      : categoryId === null
+        ? 'Unsorted'
+        : groups?.find((g) => g.id === categoryId)?.name || 'Category'
 
   if (!user) {
     return (
@@ -81,10 +110,20 @@ export default function CompetitorVideosPage() {
     >
       <TrackingLayout>
         <div className="space-y-6">
+          <CategoryTabs
+            categories={(groups || []).map((g) => ({ id: g.id, name: g.name }))}
+            selectedId={categoryId}
+            onSelect={setCategoryId}
+            onCreate={handleCreateCategory}
+          />
+
           <div className="cs-card p-6">
-            <h2 className="text-sm font-semibold text-[var(--foreground)] mb-2">
-              Track competitor video
+            <h2 className="text-sm font-semibold text-[var(--foreground)] mb-1">
+              Add video to {activeCategoryName}
             </h2>
+            <p className="text-xs text-[var(--muted)] mb-3">
+              Group videos by campaign or topic (launches, tutorials, shorts, etc.).
+            </p>
             <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2">
               <input
                 type="url"
@@ -101,23 +140,32 @@ export default function CompetitorVideosPage() {
             {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
           </div>
 
-          <MetricFilters filters={filters} onChange={setFilters} />
+          <MetricFilters filters={filters} onChange={setFilters} showComments />
 
           {isLoading ? (
             <p className="text-center text-[var(--muted)] py-8">Loading videos…</p>
           ) : !filtered.length ? (
-            <p className="text-center text-[var(--muted)] py-8">No videos match your filters.</p>
+            <p className="text-center text-[var(--muted)] py-8">
+              No videos in this category match your filters.
+            </p>
           ) : (
             <>
-              <ItemTabs
-                items={filtered.map((v) => ({
-                  id: v.id,
-                  label: v.title.length > 28 ? v.title.slice(0, 28) + '…' : v.title,
-                  thumbnailUrl: v.thumbnail_url,
-                }))}
-                selectedId={selected?.id ?? null}
-                onSelect={setSelectedId}
-              />
+              {filtered.length > 1 && <CompetitorVideosCompare videos={filtered} />}
+
+              <div>
+                <h3 className="text-sm font-semibold text-[var(--foreground)] mb-2">
+                  {filtered.length === 1 ? 'Video' : 'Focus on one video'}
+                </h3>
+                <ItemTabs
+                  items={filtered.map((v) => ({
+                    id: v.id,
+                    label: v.title.length > 28 ? v.title.slice(0, 28) + '…' : v.title,
+                    thumbnailUrl: v.thumbnail_url,
+                  }))}
+                  selectedId={selected?.id ?? null}
+                  onSelect={setSelectedId}
+                />
+              </div>
 
               {selected && (
                 <div className="cs-card p-6">
@@ -153,23 +201,6 @@ export default function CompetitorVideosPage() {
                   </div>
                 </div>
               )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filtered.map((video, index) => (
-                  <VideoThumbnailLink
-                    key={video.id}
-                    videoId={video.youtube_video_id}
-                    title={video.title}
-                    thumbnailUrl={video.thumbnail_url}
-                    subtitle={video.channel_name}
-                    views={video.view_count}
-                    likes={video.like_count}
-                    comments={video.comment_count}
-                    rank={index + 1}
-                    layout="card"
-                  />
-                ))}
-              </div>
             </>
           )}
         </div>

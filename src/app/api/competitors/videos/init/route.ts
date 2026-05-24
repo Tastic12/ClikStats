@@ -12,6 +12,7 @@ export async function POST(request: Request) {
     const token = authHeader.replace('Bearer ', '')
     const body = await request.json()
     const videoInput = (body.video_url as string) || (body.videoUrl as string)
+    const groupId = (body.group_id as string) || null
     if (!videoInput?.trim()) {
       return NextResponse.json({ error: 'Video URL is required' }, { status: 400 })
     }
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
     const { data: record, error } = await admin
       .from('competitor_videos')
       .upsert(
-        { user_id: user.id, ...video },
+        { user_id: user.id, ...video, ...(groupId ? { group_id: groupId } : {}) },
         { onConflict: 'user_id,youtube_video_id' }
       )
       .select()

@@ -7,8 +7,10 @@ import type {
   VideoMetric,
   User,
   CompetitorChannel,
+  CompetitorChannelGroup,
   CompetitorChannelVideo,
   CompetitorVideo,
+  CompetitorVideoGroup,
 } from './supabase'
 import { parseChannelInput } from './youtube-channel'
 
@@ -327,6 +329,66 @@ export function useCompetitorChannels() {
   return { channels: data, isLoading: !error && !data, isError: error, mutate }
 }
 
+export function useCompetitorChannelGroups() {
+  const { data, error, mutate } = useSWR<CompetitorChannelGroup[]>(
+    'competitor-channel-groups',
+    async () => {
+      const { data, error } = await supabase
+        .from('competitor_channel_groups')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      return data || []
+    }
+  )
+
+  const createGroup = async (name: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+    const { data, error } = await supabase
+      .from('competitor_channel_groups')
+      .insert({ user_id: user.id, name: name.trim() })
+      .select()
+      .single()
+    if (error) throw error
+    await mutate()
+    return data
+  }
+
+  return { groups: data, isLoading: !error && !data, isError: error, mutate, createGroup }
+}
+
+export function useCompetitorVideoGroups() {
+  const { data, error, mutate } = useSWR<CompetitorVideoGroup[]>(
+    'competitor-video-groups',
+    async () => {
+      const { data, error } = await supabase
+        .from('competitor_video_groups')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      return data || []
+    }
+  )
+
+  const createGroup = async (name: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+    const { data, error } = await supabase
+      .from('competitor_video_groups')
+      .insert({ user_id: user.id, name: name.trim() })
+      .select()
+      .single()
+    if (error) throw error
+    await mutate()
+    return data
+  }
+
+  return { groups: data, isLoading: !error && !data, isError: error, mutate, createGroup }
+}
+
 export function useCompetitorChannelVideos(competitorChannelId?: string) {
   const { data, error, mutate } = useSWR<CompetitorChannelVideo[]>(
     competitorChannelId ? ['competitor-channel-videos', competitorChannelId] : null,
@@ -342,6 +404,35 @@ export function useCompetitorChannelVideos(competitorChannelId?: string) {
     }
   )
   return { videos: data, isLoading: !error && !data, isError: error, mutate }
+}
+
+export function useCompetitorChannelVideosBatch(channelIds: string[]) {
+  const key =
+    channelIds.length > 0
+      ? ['competitor-channel-videos-batch', ...[...channelIds].sort()]
+      : null
+
+  const { data, error, isLoading } = useSWR<CompetitorChannelVideo[]>(key, async () => {
+    if (!channelIds.length) return []
+    const { data, error } = await supabase
+      .from('competitor_channel_videos')
+      .select('*')
+      .in('competitor_channel_id', channelIds)
+      .order('view_count', { ascending: false })
+    if (error) throw error
+    return data || []
+  })
+
+  const byChannel: Record<string, CompetitorChannelVideo[]> = {}
+  for (const id of channelIds) {
+    byChannel[id] = []
+  }
+  for (const v of data || []) {
+    if (!byChannel[v.competitor_channel_id]) byChannel[v.competitor_channel_id] = []
+    byChannel[v.competitor_channel_id].push(v)
+  }
+
+  return { videos: data, videosByChannel: byChannel, isLoading: !!key && isLoading, isError: error }
 }
 
 export function useCompetitorVideos() {
@@ -380,12 +471,16 @@ async function postAuthedApi(path: string, body: Record<string, string>) {
   return result
 }
 
-export function initCompetitorChannel(channelUrl: string) {
-  return postAuthedApi('/api/competitors/channels/init', { channel_url: channelUrl.trim() })
+export function initCompetitorChannel(channelUrl: string, groupId?: string | null) {
+  const body: Record<string, string> = { channel_url: channelUrl.trim() }
+  if (groupId) body.group_id = groupId
+  return postAuthedApi('/api/competitors/channels/init', body)
 }
 
-export function initCompetitorVideo(videoUrl: string) {
-  return postAuthedApi('/api/competitors/videos/init', { video_url: videoUrl.trim() })
+export function initCompetitorVideo(videoUrl: string, groupId?: string | null) {
+  const body: Record<string, string> = { video_url: videoUrl.trim() }
+  if (groupId) body.group_id = groupId
+  return postAuthedApi('/api/competitors/videos/init', body)
 }
 
 // Utility function to extract YouTube video ID from URL

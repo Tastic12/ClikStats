@@ -11,7 +11,11 @@ import {
   useVideoMetrics,
   buildVideoChartMetrics,
 } from '../../../../lib/hooks'
-import { VideoMetricsChart, MetricCard } from '../../../components/Charts'
+import {
+  VideoMetricsChart,
+  VideoPerformanceOverviewChart,
+  MetricCard,
+} from '../../../components/Charts'
 import { DashboardShell } from '../../../components/DashboardShell'
 import { TrackingLayout } from '../../../components/TrackingLayout'
 import { VideoThumbnailLink } from '../../../components/VideoThumbnailLink'
@@ -150,12 +154,24 @@ export default function MyVideosPage() {
                     ) : chartMetrics ? (
                       <div className="space-y-8">
                         <div>
+                          <h4 className="text-sm font-medium text-[var(--muted)] mb-2">
+                            Overview
+                          </h4>
+                          <VideoPerformanceOverviewChart metrics={chartMetrics} />
+                        </div>
+                        <div>
                           <h4 className="text-sm font-medium text-[var(--muted)] mb-2">Views</h4>
                           <VideoMetricsChart metrics={chartMetrics} metricType="view_count" />
                         </div>
                         <div>
                           <h4 className="text-sm font-medium text-[var(--muted)] mb-2">Likes</h4>
                           <VideoMetricsChart metrics={chartMetrics} metricType="like_count" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-[var(--muted)] mb-2">
+                            Comments
+                          </h4>
+                          <VideoMetricsChart metrics={chartMetrics} metricType="comment_count" />
                         </div>
                       </div>
                     ) : null}

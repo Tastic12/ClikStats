@@ -43,7 +43,9 @@ export function DashboardShell({ children, email, onSignOut }: DashboardShellPro
           <nav className="space-y-1">
             {navItems.map((item) => {
               const active =
-                pathname === item.href || pathname.startsWith('/tracking')
+                item.href === '/dashboard'
+                  ? pathname === '/dashboard'
+                  : pathname.startsWith('/tracking')
               return (
                 <Link
                   key={item.href}

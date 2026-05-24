@@ -12,6 +12,8 @@ export type MetricFiltersState = {
   maxSubscribers: string
   minVideoCount: string
   maxVideoCount: string
+  minComments: string
+  maxComments: string
 }
 
 export const defaultMetricFilters: MetricFiltersState = {
@@ -26,6 +28,8 @@ export const defaultMetricFilters: MetricFiltersState = {
   maxSubscribers: '',
   minVideoCount: '',
   maxVideoCount: '',
+  minComments: '',
+  maxComments: '',
 }
 
 type MetricFiltersProps = {
@@ -33,6 +37,7 @@ type MetricFiltersProps = {
   onChange: (filters: MetricFiltersState) => void
   showSubscribers?: boolean
   showVideoCount?: boolean
+  showComments?: boolean
 }
 
 function RangePair({
@@ -43,7 +48,17 @@ function RangePair({
   onChange,
 }: {
   label: string
-  minKey: 'minViews' | 'maxViews' | 'minLikes' | 'maxLikes' | 'minSubscribers' | 'maxSubscribers' | 'minVideoCount' | 'maxVideoCount'
+  minKey:
+    | 'minViews'
+    | 'maxViews'
+    | 'minLikes'
+    | 'maxLikes'
+    | 'minSubscribers'
+    | 'maxSubscribers'
+    | 'minVideoCount'
+    | 'maxVideoCount'
+    | 'minComments'
+    | 'maxComments'
   maxKey: typeof minKey
   filters: MetricFiltersState
   onChange: (f: MetricFiltersState) => void
@@ -78,6 +93,7 @@ export function MetricFilters({
   onChange,
   showSubscribers,
   showVideoCount,
+  showComments,
 }: MetricFiltersProps) {
   return (
     <div className="cs-card p-4 space-y-4">
@@ -130,6 +146,15 @@ export function MetricFilters({
             onChange={onChange}
           />
         )}
+        {showComments && (
+          <RangePair
+            label="Comments"
+            minKey="minComments"
+            maxKey="maxComments"
+            filters={filters}
+            onChange={onChange}
+          />
+        )}
       </div>
     </div>
   )
@@ -143,6 +168,7 @@ type FilterableItem = {
   like_count?: number
   subscriber_count?: number
   video_count?: number
+  comment_count?: number
 }
 
 function inRange(value: number, min: string, max: string) {
@@ -173,6 +199,7 @@ export function applyMetricFilters<T extends FilterableItem>(
       return false
     }
     if (!inRange(item.video_count || 0, filters.minVideoCount, filters.maxVideoCount)) return false
+    if (!inRange(item.comment_count || 0, filters.minComments, filters.maxComments)) return false
     return true
   })
 }

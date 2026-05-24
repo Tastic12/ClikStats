@@ -12,6 +12,7 @@ export async function POST(request: Request) {
     const token = authHeader.replace('Bearer ', '')
     const body = await request.json()
     const channelInput = (body.channel_url as string) || (body.channelUrl as string)
+    const groupId = (body.group_id as string) || null
     if (!channelInput?.trim()) {
       return NextResponse.json({ error: 'Channel URL is required' }, { status: 400 })
     }
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
           subscriber_count: parseInt(channel.statistics.subscriberCount, 10) || 0,
           video_count: parseInt(channel.statistics.videoCount, 10) || 0,
           view_count: parseInt(channel.statistics.viewCount, 10) || 0,
+          ...(groupId ? { group_id: groupId } : {}),
         },
         { onConflict: 'user_id,youtube_channel_id' }
       )
