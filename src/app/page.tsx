@@ -3,167 +3,188 @@
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { useEffect, useState } from 'react'
-import { User } from '@supabase/supabase-js'
+import type { User } from '@supabase/supabase-js'
+
+const features = [
+  {
+    icon: '📊',
+    title: 'Channel dashboard',
+    description:
+      'See subscribers, total views, and your latest uploads in one place with clear performance charts.',
+  },
+  {
+    icon: '🎬',
+    title: 'My videos',
+    description:
+      'Track views, likes, and comments over time for every video on your channel — from upload to today.',
+  },
+  {
+    icon: '🔍',
+    title: 'Competitor tracking',
+    description:
+      'Monitor rival channels and videos, filter by category, and compare performance side by side.',
+  },
+  {
+    icon: '🔄',
+    title: 'Automated snapshots',
+    description:
+      'Daily metric syncs build history so your charts grow more accurate the longer you use ClikStats.',
+  },
+]
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    // Get initial user
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
+    supabase.auth.getUser().then(({ data: { user: u } }) => {
+      setUser(u)
     })
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">YouTube Analytics Pro</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              {user ? (
-                <>
-                  <Link href="/dashboard" className="text-gray-700 hover:text-gray-900">
-                    Dashboard
-                  </Link>
-                  <button
-                    onClick={() => supabase.auth.signOut()}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                  >
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <Link href="/auth" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-                  Sign In
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+  const primaryCta = user ? (
+    <Link href="/dashboard" className="cs-btn-primary inline-flex items-center justify-center px-8 py-3 text-base md:py-4 md:text-lg md:px-10">
+      Go to dashboard
+    </Link>
+  ) : (
+    <Link href="/auth" className="cs-btn-primary inline-flex items-center justify-center px-8 py-3 text-base md:py-4 md:text-lg md:px-10">
+      Get started free
+    </Link>
+  )
 
-      {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
-        <div className="text-center">
-          <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
-            <span className="block">YouTube Analytics</span>
-            <span className="block text-blue-600">Made Simple</span>
-          </h1>
-          <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-            Track your YouTube channels, analyze performance metrics, and grow your audience with comprehensive analytics and real-time insights.
-          </p>
-          <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
+  return (
+    <div className="min-h-screen flex flex-col">
+      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md">
+        <div className="flex h-14 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 xl:px-10">
+          <Link href="/" className="shrink-0 text-lg font-bold text-[var(--foreground)]">
+            Clik<span className="text-[var(--accent)]">Stats</span>
+          </Link>
+
+          <div className="flex items-center gap-3 sm:gap-4">
             {user ? (
-              <Link href="/dashboard" className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10">
-                Go to Dashboard
-              </Link>
+              <>
+                <Link
+                  href="/dashboard"
+                  className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)] whitespace-nowrap"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/tracking/my-videos"
+                  className="hidden sm:inline text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)] whitespace-nowrap"
+                >
+                  Tracking
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => supabase.auth.signOut()}
+                  className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] whitespace-nowrap"
+                >
+                  Sign out
+                </button>
+              </>
             ) : (
-              <Link href="/auth" className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10">
-                Get Started Free
+              <Link href="/auth" className="cs-btn-primary px-4 py-2 text-sm">
+                Sign in
               </Link>
             )}
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Features */}
-      <div className="py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="lg:text-center">
-            <h2 className="text-base text-blue-600 font-semibold tracking-wide uppercase">Features</h2>
-            <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-              Everything you need to analyze your YouTube performance
+      <main className="flex-1 w-full">
+        {/* Hero */}
+        <section className="px-4 sm:px-6 lg:px-8 xl:px-10 pt-16 pb-20 sm:pt-24 sm:pb-28 border-b border-[var(--border)]">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-wide text-[var(--accent)]">
+              YouTube analytics
             </p>
-          </div>
-
-          <div className="mt-10">
-            <div className="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
-              <div className="relative">
-                <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
-                  📊
-                </div>
-                <p className="ml-16 text-lg leading-6 font-medium text-gray-900">Real-time Analytics</p>
-                <p className="mt-2 ml-16 text-base text-gray-500">
-                  Track subscriber count, view count, and video performance with beautiful charts and graphs.
-                </p>
-              </div>
-
-              <div className="relative">
-                <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
-                  🔄
-                </div>
-                <p className="ml-16 text-lg leading-6 font-medium text-gray-900">Automatic Updates</p>
-                <p className="mt-2 ml-16 text-base text-gray-500">
-                  Daily automated metric updates ensure your data is always current and accurate.
-                </p>
-              </div>
-
-              <div className="relative">
-                <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
-                  📱
-                </div>
-                <p className="ml-16 text-lg leading-6 font-medium text-gray-900">Multi-Channel Support</p>
-                <p className="mt-2 ml-16 text-base text-gray-500">
-                  Track multiple YouTube channels from a single dashboard with individual analytics.
-                </p>
-              </div>
-
-              <div className="relative">
-                <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
-                  🔒
-                </div>
-                <p className="ml-16 text-lg leading-6 font-medium text-gray-900">Secure & Private</p>
-                <p className="mt-2 ml-16 text-base text-gray-500">
-                  Your data is secure with Supabase authentication and row-level security policies.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* CTA Section */}
-      <div className="bg-blue-50">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8 lg:flex lg:items-center lg:justify-between">
-          <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-            <span className="block">Ready to analyze your YouTube data?</span>
-            <span className="block text-blue-600">Start tracking today.</span>
-          </h2>
-          <div className="mt-8 flex lg:mt-0 lg:flex-shrink-0">
-            <div className="inline-flex rounded-md shadow">
-              {user ? (
-                <Link href="/dashboard" className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                  View Dashboard
-                </Link>
-              ) : (
-                <Link href="/auth" className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                  Get started
+            <h1 className="mt-4 text-4xl font-bold tracking-tight text-[var(--foreground)] sm:text-5xl md:text-6xl">
+              <span className="block">Your channel.</span>
+              <span className="block text-[var(--accent)]">Your competitors.</span>
+              <span className="block">One dashboard.</span>
+            </h1>
+            <p className="mt-6 text-base text-[var(--muted)] sm:text-lg md:max-w-2xl md:mx-auto">
+              ClikStats tracks your YouTube performance and the channels you care about — with
+              charts, categories, and side-by-side comparisons built for creators who want clarity,
+              not clutter.
+            </p>
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              {primaryCta}
+              {!user && (
+                <Link
+                  href="/auth"
+                  className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-[var(--foreground)] border border-[var(--border-strong)] rounded-lg hover:bg-[var(--elevated)] transition-colors md:py-4 md:text-lg md:px-10"
+                >
+                  Sign in
                 </Link>
               )}
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      {/* Footer */}
-      <footer className="bg-white">
-        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500">
-            © 2024 YouTube Analytics Pro. Built with Next.js, Supabase, and the YouTube Data API.
-          </p>
-        </div>
+        {/* Features */}
+        <section className="px-4 sm:px-6 lg:px-8 xl:px-10 py-16 sm:py-20 border-b border-[var(--border)]">
+          <div className="mx-auto max-w-5xl">
+            <div className="text-center max-w-2xl mx-auto">
+              <p className="text-sm font-semibold uppercase tracking-wide text-[var(--accent)]">
+                Features
+              </p>
+              <h2 className="mt-3 text-3xl font-bold text-[var(--foreground)] sm:text-4xl">
+                Everything you need to grow with data
+              </h2>
+              <p className="mt-4 text-[var(--muted)]">
+                The same dark purple experience across dashboard, tracking, and your video analytics.
+              </p>
+            </div>
+
+            <ul className="mt-12 grid gap-10 sm:grid-cols-2 sm:gap-x-12 sm:gap-y-12">
+              {features.map((feature) => (
+                <li key={feature.title} className="flex gap-4">
+                  <div
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--elevated)] text-xl"
+                    aria-hidden
+                  >
+                    {feature.icon}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-[var(--foreground)]">{feature.title}</h3>
+                    <p className="mt-2 text-[var(--muted)] leading-relaxed">{feature.description}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="px-4 sm:px-6 lg:px-8 xl:px-10 py-16 sm:py-20">
+          <div className="mx-auto max-w-5xl flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-3xl font-bold text-[var(--foreground)] sm:text-4xl">
+                Ready to track what matters?
+              </h2>
+              <p className="mt-3 text-lg text-[var(--accent)]">
+                Connect your channel and start comparing today.
+              </p>
+            </div>
+            <div className="shrink-0">{primaryCta}</div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-[var(--border)] px-4 sm:px-6 lg:px-8 xl:px-10 py-8">
+        <p className="text-center text-sm text-[var(--muted)]">
+          © {new Date().getFullYear()} ClikStats. Built with Next.js, Supabase, and the YouTube Data
+          API.
+        </p>
       </footer>
     </div>
   )
