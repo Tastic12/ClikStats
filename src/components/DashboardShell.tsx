@@ -13,37 +13,25 @@ type DashboardShellProps = {
   children: React.ReactNode
   email?: string
   onSignOut: () => void
-  /** Use full content width (tracking compare views) */
+  /** @deprecated Layout is always full width */
   wide?: boolean
 }
 
-export function DashboardShell({ children, email, onSignOut, wide }: DashboardShellProps) {
+export function DashboardShell({ children, email, onSignOut }: DashboardShellProps) {
   const pathname = usePathname()
-  const contentMax = wide ? 'max-w-[1600px]' : 'max-w-7xl'
 
   return (
-    <div className="min-h-screen bg-[var(--app-bg)]">
-      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]">
-        <div className={`mx-auto flex h-14 ${contentMax} items-center justify-between px-4 sm:px-6 lg:px-8`}>
-          <Link href="/dashboard" className="text-lg font-bold text-[var(--foreground)]">
+    <div className="min-h-screen flex flex-col">
+      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md">
+        <div className="flex h-14 w-full items-center gap-4 px-4 sm:px-6 lg:px-8 xl:px-10">
+          <Link
+            href="/dashboard"
+            className="shrink-0 text-lg font-bold text-[var(--foreground)]"
+          >
             Clik<span className="text-[var(--accent)]">Stats</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <ProfileMenu email={email} />
-            <button
-              type="button"
-              onClick={onSignOut}
-              className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-      </header>
 
-      <div className={`mx-auto flex ${contentMax} gap-8 px-4 py-6 sm:px-6 lg:px-8`}>
-        <aside className="hidden w-48 flex-shrink-0 md:block">
-          <nav className="space-y-1">
+          <nav className="flex flex-1 items-center gap-1 min-w-0">
             {navItems.map((item) => {
               const active =
                 item.href === '/dashboard'
@@ -53,10 +41,10 @@ export function DashboardShell({ children, email, onSignOut, wide }: DashboardSh
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
                     active
-                      ? 'bg-[var(--accent)] text-white'
-                      : 'text-[var(--muted)] hover:bg-[var(--card)] hover:text-[var(--foreground)]'
+                      ? 'bg-[var(--accent-glow)] text-[var(--accent)]'
+                      : 'text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--elevated)]'
                   }`}
                 >
                   {item.label}
@@ -64,10 +52,21 @@ export function DashboardShell({ children, email, onSignOut, wide }: DashboardSh
               )
             })}
           </nav>
-        </aside>
 
-        <main className="min-w-0 flex-1">{children}</main>
-      </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <ProfileMenu email={email} />
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] whitespace-nowrap"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 w-full px-4 py-6 sm:px-6 lg:px-8 xl:px-10">{children}</main>
     </div>
   )
 }

@@ -39,7 +39,7 @@ export function VideoThumbnailLink({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className={`group cs-card overflow-hidden hover:border-[var(--accent)] transition-colors block ${className}`}
+        className={`group overflow-hidden rounded-lg bg-[var(--elevated)]/50 hover:bg-[var(--elevated)] ring-1 ring-[var(--border)] hover:ring-[var(--accent)] transition-all block ${className}`}
       >
         <div className={`${compact ? 'aspect-[16/10]' : 'aspect-video'} bg-[var(--elevated)] relative`}>
           {thumbnailUrl ? (

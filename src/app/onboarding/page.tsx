@@ -64,7 +64,7 @@ export default function OnboardingPage() {
           </p>
         </div>
 
-        <div className="cs-card p-6 space-y-4">
+        <section className="pb-8 border-b border-[var(--border)] space-y-4">
           <h2 className="text-sm font-semibold text-[var(--foreground)]">1. Profile name</h2>
           <p className="text-sm text-[var(--muted)]">Shown in the top right across the app.</p>
           <div className="flex gap-2">
@@ -83,12 +83,12 @@ export default function OnboardingPage() {
               {savingName ? 'Saving…' : 'Save'}
             </button>
           </div>
-        </div>
+        </section>
 
-        <div className="cs-card p-6 space-y-4">
+        <section className="py-8 space-y-4">
           <h2 className="text-sm font-semibold text-[var(--foreground)]">2. Connect YouTube channel</h2>
           <AddChannelForm onSuccess={handleChannelAdded} />
-        </div>
+        </section>
 
         <p className="text-center text-sm text-[var(--muted)]">
           <Link href="/dashboard" className="text-[var(--accent)] hover:underline">

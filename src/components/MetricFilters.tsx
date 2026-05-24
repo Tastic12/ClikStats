@@ -185,7 +185,7 @@ export function MetricFilters({
     return <div className="space-y-3">{inner}</div>
   }
 
-  return <div className="cs-card p-4 space-y-4">{inner}</div>
+  return <div className="space-y-4">{inner}</div>
 }
 
 type FilterableItem = {

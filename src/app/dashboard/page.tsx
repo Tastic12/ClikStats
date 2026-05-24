@@ -17,6 +17,7 @@ import { DashboardShell } from '../../components/DashboardShell'
 import { AddChannelForm } from '../../components/AddChannelForm'
 import { TopVideosList } from '../../components/TopVideosList'
 import { VideoThumbnailLink } from '../../components/VideoThumbnailLink'
+
 export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -44,7 +45,7 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--app-bg)]">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-[var(--muted)]">Loading…</p>
       </div>
     )
@@ -65,21 +66,23 @@ export default function DashboardPage() {
 
   return (
     <DashboardShell email={user.email} onSignOut={handleSignOut}>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">Dashboard</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">Your connected channel at a glance.</p>
-        </div>
+      <div className="w-full max-w-none space-y-0">
+        <header className="pb-8 border-b border-[var(--border)]">
+          <h1 className="text-3xl font-bold text-[var(--foreground)]">Dashboard</h1>
+          <p className="mt-2 text-[var(--muted)]">Your connected channel at a glance.</p>
+        </header>
 
         {channelsLoading ? (
-          <p className="text-[var(--muted)] py-12 text-center">Loading…</p>
+          <p className="text-[var(--muted)] py-16 text-center">Loading…</p>
         ) : !channel ? (
-          <div className="cs-card border-dashed p-8">
-            <h2 className="text-lg font-semibold text-[var(--foreground)]">Connect your YouTube channel</h2>
-            <p className="mt-2 text-sm text-[var(--muted)]">
+          <section className="py-12 max-w-xl">
+            <h2 className="text-xl font-semibold text-[var(--foreground)]">
+              Connect your YouTube channel
+            </h2>
+            <p className="mt-2 text-[var(--muted)]">
               One channel per account. Paste your channel URL to start tracking.
             </p>
-            <div className="mt-6 max-w-lg">
+            <div className="mt-8">
               <AddChannelForm
                 onSuccess={() => {
                   mutateChannels()
@@ -87,71 +90,75 @@ export default function DashboardPage() {
                 }}
               />
             </div>
-          </div>
+          </section>
         ) : (
           <>
-            <div className="cs-card p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <section className="py-8 border-b border-[var(--border)]">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-5">
                 {channel.thumbnail_url && (
                   <img
                     src={channel.thumbnail_url}
                     alt=""
-                    className="h-20 w-20 rounded-full object-cover ring-2 ring-[var(--accent)]"
+                    className="h-24 w-24 rounded-full object-cover ring-2 ring-[var(--accent)]"
                   />
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium uppercase tracking-wide text-[var(--accent)]">
                     Your channel
                   </p>
-                  <h2 className="text-xl font-bold text-[var(--foreground)] truncate">
+                  <h2 className="mt-1 text-2xl font-bold text-[var(--foreground)] truncate">
                     {channel.channel_name}
                   </h2>
                   <a
                     href={channel.channel_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-[var(--accent)] hover:underline truncate block"
+                    className="mt-1 text-sm text-[var(--accent)] hover:underline truncate block"
                   >
                     {channel.channel_url}
                   </a>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <MetricCard
-                title="Subscribers"
-                value={channel.subscriber_count || 0}
-                change={subscriberChange}
-                format="subscribers"
-              />
-              <MetricCard
-                title="Total views"
-                value={channel.view_count || 0}
-                change={viewChange}
-                format="views"
-              />
-              <MetricCard title="Videos" value={channel.video_count || 0} format="number" />
-            </div>
+            <section className="py-8 border-b border-[var(--border)]">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-16">
+                <MetricCard
+                  title="Subscribers"
+                  value={channel.subscriber_count || 0}
+                  change={subscriberChange}
+                  format="subscribers"
+                />
+                <MetricCard
+                  title="Total views"
+                  value={channel.view_count || 0}
+                  change={viewChange}
+                  format="views"
+                />
+                <MetricCard title="Videos" value={channel.video_count || 0} format="number" />
+              </div>
+            </section>
 
             {latestVideo && (
-              <div className="cs-card p-6">
+              <section className="py-8 border-b border-[var(--border)]">
                 <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4">Latest upload</h3>
-                <VideoThumbnailLink
-                  videoId={latestVideo.video_id}
-                  title={latestVideo.title}
-                  thumbnailUrl={latestVideo.thumbnail_url}
-                  subtitle={`Published ${new Date(latestVideo.published_at).toLocaleDateString()}`}
-                  views={latestVideo.view_count}
-                  likes={latestVideo.like_count}
-                  comments={latestVideo.comment_count}
-                  layout="row"
-                />
-              </div>
+                <div className="max-w-3xl">
+                  <VideoThumbnailLink
+                    videoId={latestVideo.video_id}
+                    title={latestVideo.title}
+                    thumbnailUrl={latestVideo.thumbnail_url}
+                    subtitle={`Published ${new Date(latestVideo.published_at).toLocaleDateString()}`}
+                    views={latestVideo.view_count}
+                    likes={latestVideo.like_count}
+                    comments={latestVideo.comment_count}
+                    layout="row"
+                  />
+                </div>
+              </section>
             )}
 
-            <div className="cs-card p-6">
-              <div className="flex items-center justify-between mb-4">
+            <section className="py-8">
+              <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-[var(--foreground)]">Top 5 videos</h3>
                 <Link
                   href="/tracking/my-videos"
@@ -165,7 +172,7 @@ export default function DashboardPage() {
               ) : (
                 <TopVideosList videos={topVideos} />
               )}
-            </div>
+            </section>
           </>
         )}
       </div>

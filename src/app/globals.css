@@ -1,19 +1,21 @@
 @import "tailwindcss";
 
-/* ClikStats brand — https://clikstats.com */
+/* ClikStats — dark purple theme */
 :root {
-  --app-bg: #0a0a0a;
-  --surface: #121212;
-  --elevated: #1a1a1a;
-  --card: #242424;
-  --foreground: #f5f5f5;
-  --muted: #9ca3af;
-  --muted-2: #cccccc;
-  --border: #333333;
-  --accent: #4361ee;
-  --accent-hover: #3a56d4;
-  --success: #22c55e;
-  --danger: #ef4444;
+  --app-bg: #0e0618;
+  --surface: #140a22;
+  --elevated: #1c1030;
+  --card: #221338;
+  --foreground: #f5f0fa;
+  --muted: #a894c0;
+  --muted-2: #d4c4e8;
+  --border: rgba(167, 139, 250, 0.12);
+  --border-strong: rgba(167, 139, 250, 0.22);
+  --accent: #a78bfa;
+  --accent-hover: #8b5cf6;
+  --accent-glow: rgba(167, 139, 250, 0.25);
+  --success: #34d399;
+  --danger: #f87171;
 }
 
 @theme inline {
@@ -32,20 +34,41 @@
 
 body {
   background: var(--app-bg);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(109, 40, 217, 0.35), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 50%, rgba(91, 33, 182, 0.12), transparent),
+    radial-gradient(ellipse 50% 30% at 0% 80%, rgba(76, 29, 149, 0.1), transparent);
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Reusable app surfaces */
+/* Flat surfaces — no boxed cards by default */
 .cs-card {
-  background: var(--card);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.cs-section {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cs-section:last-child {
+  border-bottom: none;
+}
+
+.cs-surface {
+  background: color-mix(in srgb, var(--elevated) 60%, transparent);
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
 }
 
 .cs-input {
   background: var(--elevated);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   color: var(--foreground);
   border-radius: 0.5rem;
 }
@@ -57,18 +80,18 @@ body {
 .cs-input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
 .cs-btn-primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: white;
   border-radius: 0.5rem;
   font-weight: 500;
 }
 
 .cs-btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
+  filter: brightness(1.08);
 }
 
 .cs-btn-primary:disabled {

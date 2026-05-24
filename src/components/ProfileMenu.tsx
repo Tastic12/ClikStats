@@ -67,7 +67,7 @@ export function ProfileMenu({ email }: ProfileMenuProps) {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-72 cs-card shadow-xl py-2">
+        <div className="absolute right-0 z-50 mt-2 w-72 cs-surface shadow-xl py-2">
           <div className="px-4 py-2 border-b border-[var(--border)]">
             <p className="text-xs text-[var(--muted)]">Signed in as</p>
             <p className="text-sm font-medium text-[var(--foreground)] truncate">{email}</p>

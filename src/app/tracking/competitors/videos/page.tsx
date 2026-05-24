@@ -104,7 +104,6 @@ export default function CompetitorVideosPage() {
 
   return (
     <DashboardShell
-      wide
       email={user.email}
       onSignOut={async () => {
         await supabase.auth.signOut()
@@ -120,7 +119,7 @@ export default function CompetitorVideosPage() {
             onCreate={handleCreateCategory}
           />
 
-          <div className="cs-card p-6">
+          <section className="pb-8 border-b border-[var(--border)]">
             <h2 className="text-sm font-semibold text-[var(--foreground)] mb-1">
               Add video to {activeCategoryName}
             </h2>
@@ -141,7 +140,7 @@ export default function CompetitorVideosPage() {
               </button>
             </form>
             {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
-          </div>
+          </section>
 
           {isLoading ? (
             <p className="text-center text-[var(--muted)] py-8">Loading videos…</p>
@@ -150,7 +149,7 @@ export default function CompetitorVideosPage() {
               No videos in this category match your filters.
             </p>
           ) : (
-            <div className="w-full border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--surface)]">
+            <div className="w-full">
               <TrackingToolbar
                 title={`${filtered.length} video${filtered.length === 1 ? '' : 's'}`}
                 viewMode={viewMode}
@@ -160,7 +159,7 @@ export default function CompetitorVideosPage() {
                 showComments
               />
 
-              <div className="w-full px-3 py-5 sm:px-5 space-y-8">
+              <div className="w-full pt-6 space-y-8">
                 {filtered.length > 1 && (
                   <CompetitorVideosCompare videos={filtered} viewMode={viewMode} />
                 )}

@@ -279,10 +279,10 @@ export function MetricCard({ title, value, change, format = 'number' }: MetricCa
   }
 
   return (
-    <div className="cs-card p-6">
-      <h3 className="text-sm font-medium text-[var(--muted)]">{title}</h3>
-      <div className="mt-2 flex items-baseline">
-        <div className="text-2xl font-semibold text-[var(--foreground)]">{formatValue(value)}</div>
+    <div className="py-1">
+      <h3 className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">{title}</h3>
+      <div className="mt-1 flex items-baseline">
+        <div className="text-3xl font-semibold text-[var(--foreground)]">{formatValue(value)}</div>
         {change !== undefined && change !== 0 && (
           <div
             className={`ml-2 text-sm font-semibold ${

@@ -30,7 +30,7 @@ export function CompetitorCompare({
   return (
     <div className="w-full space-y-6">
       {leader && (
-        <div className="rounded-lg border border-[var(--success)]/50 bg-[var(--elevated)] px-4 py-3">
+        <div className="border-l-2 border-[var(--success)] pl-4 py-1">
           <p className="text-xs font-semibold uppercase text-[var(--success)]">Leading channel</p>
           <div className="mt-2 flex items-center gap-3">
             {leader.thumbnail_url && (
@@ -99,12 +99,12 @@ function ChannelColumn({
   viewMode: ViewMode
 }) {
   return (
-    <div className="min-w-0 flex flex-col border border-[var(--border)] rounded-lg bg-[var(--elevated)]/50 overflow-hidden">
+    <div className="min-w-0 flex flex-col overflow-hidden">
       <a
         href={channel.channel_url}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-2 px-3 py-3 border-b border-[var(--border)] bg-[var(--elevated)] group shrink-0"
+        className="flex items-center gap-2 pb-3 border-b border-[var(--border)] group shrink-0"
       >
         {channel.thumbnail_url ? (
           <img
@@ -119,7 +119,7 @@ function ChannelColumn({
           {channel.channel_name}
         </span>
       </a>
-      <div className="p-2 sm:p-3 flex-1 min-w-0">
+      <div className="pt-3 flex-1 min-w-0">
         <VideoResultsLayout
           viewMode={viewMode}
           columnStack={viewMode === 'grid'}

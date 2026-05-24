@@ -139,8 +139,8 @@ export default function AuthPage() {
           {message && (
             <div className={`rounded-md p-4 ${
               message.includes('Check your email') 
-                ? 'bg-green-50 text-green-700' 
-                : 'bg-red-50 text-red-700'
+                ? 'bg-[var(--success)]/10 text-[var(--success)]' 
+                : 'bg-[var(--danger)]/10 text-[var(--danger)]'
             }`}>
               <p className="text-sm">{message}</p>
             </div>

@@ -74,8 +74,8 @@ export default function MyVideosPage() {
             first.
           </p>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+            <div className="lg:col-span-4 xl:col-span-3 space-y-4">
               <input
                 type="search"
                 placeholder="Search your videos…"
@@ -83,7 +83,7 @@ export default function MyVideosPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="cs-input w-full px-3 py-2 text-sm"
               />
-              <div className="cs-card divide-y divide-[var(--border)] max-h-[36rem] overflow-y-auto">
+              <div className="divide-y divide-[var(--border)] max-h-[36rem] overflow-y-auto">
                 {videosLoading ? (
                   <p className="p-4 text-sm text-[var(--muted)]">Loading…</p>
                 ) : (
@@ -117,10 +117,10 @@ export default function MyVideosPage() {
               </div>
             </div>
 
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-8 xl:col-span-9">
               {selectedVideo ? (
-                <div className="space-y-6">
-                  <div className="cs-card p-6">
+                <div className="space-y-8">
+                  <div className="pb-6 border-b border-[var(--border)]">
                     <VideoThumbnailLink
                       videoId={selectedVideo.video_id}
                       title={selectedVideo.title}
@@ -131,7 +131,7 @@ export default function MyVideosPage() {
                       layout="row"
                     />
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-8 pb-6 border-b border-[var(--border)]">
                     <MetricCard title="Views" value={selectedVideo.view_count || 0} format="views" />
                     <MetricCard title="Likes" value={selectedVideo.like_count || 0} format="number" />
                     <MetricCard
@@ -140,12 +140,12 @@ export default function MyVideosPage() {
                       format="number"
                     />
                   </div>
-                  <div className="cs-card p-6">
+                  <div>
                     <h3 className="text-lg font-semibold text-[var(--foreground)] mb-2">
                       Performance over time
                     </h3>
                     {!hasHistory && (
-                      <p className="text-xs text-[var(--muted)] bg-[var(--elevated)] rounded-md px-3 py-2 mb-4">
+                      <p className="text-xs text-[var(--muted)] px-0 py-2 mb-4">
                         Snapshot from publish to now. Daily syncs will build full history.
                       </p>
                     )}

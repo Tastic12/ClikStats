@@ -70,7 +70,7 @@ export function TrackingToolbar({
                   aria-label="Close filters"
                   onClick={() => setFiltersOpen(false)}
                 />
-                <div className="absolute right-0 top-full z-40 mt-2 w-[min(calc(100vw-2rem),22rem)] max-h-[70vh] overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 shadow-xl">
+                <div className="absolute right-0 top-full z-40 mt-2 w-[min(calc(100vw-2rem),22rem)] max-h-[70vh] overflow-y-auto cs-surface p-4 shadow-xl">
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-xs font-semibold text-[var(--foreground)]">Search & filters</span>
                     <button

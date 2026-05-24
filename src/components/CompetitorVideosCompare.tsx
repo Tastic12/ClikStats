@@ -43,7 +43,7 @@ export function CompetitorVideosCompare({ videos, viewMode }: CompetitorVideosCo
 
   return (
     <div className="w-full space-y-6">
-      <div className="rounded-lg border border-[var(--success)]/50 bg-[var(--elevated)] px-4 py-3">
+      <div className="border-l-2 border-[var(--success)] pl-4 py-1">
         <p className="text-xs font-semibold uppercase text-[var(--success)]">Top performer</p>
         <div className="mt-2 flex items-center gap-3">
           {leader.thumbnail_url && (
@@ -99,7 +99,7 @@ export function CompetitorVideosCompare({ videos, viewMode }: CompetitorVideosCo
             {displaySet.map((video, index) => (
               <div
                 key={video.id}
-                className="min-w-0 border border-[var(--border)] rounded-lg bg-[var(--elevated)]/50 overflow-hidden"
+                className="min-w-0 overflow-hidden"
               >
                 {viewMode === 'list' ? (
                   <div className="p-2">

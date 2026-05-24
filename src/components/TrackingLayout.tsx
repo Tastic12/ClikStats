@@ -13,13 +13,13 @@ export function TrackingLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">Tracking</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+    <div className="w-full space-y-6">
+      <header className="pb-6 border-b border-[var(--border)]">
+        <h1 className="text-3xl font-bold text-[var(--foreground)]">Tracking</h1>
+        <p className="mt-2 text-[var(--muted)]">
           Performance for your channel and competitors you add.
         </p>
-      </div>
+      </header>
 
       <div className="border-b border-[var(--border)]">
         <nav className="-mb-px flex flex-wrap gap-1">

@@ -111,7 +111,6 @@ export default function CompetitorChannelsPage() {
 
   return (
     <DashboardShell
-      wide
       email={user.email}
       onSignOut={async () => {
         await supabase.auth.signOut()
@@ -127,7 +126,7 @@ export default function CompetitorChannelsPage() {
             onCreate={handleCreateCategory}
           />
 
-          <div className="cs-card p-6">
+          <section className="pb-8 border-b border-[var(--border)]">
             <h2 className="text-sm font-semibold text-[var(--foreground)] mb-1">
               Add channel to {activeCategoryName}
             </h2>
@@ -148,7 +147,7 @@ export default function CompetitorChannelsPage() {
               </button>
             </form>
             {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
-          </div>
+          </section>
 
           {isLoading || batchLoading ? (
             <p className="text-center text-[var(--muted)] py-8">Loading competitors…</p>
@@ -157,7 +156,7 @@ export default function CompetitorChannelsPage() {
               No channels in this category match your filters. Add a channel or try another category.
             </p>
           ) : (
-            <div className="w-full border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--surface)]">
+            <div className="w-full">
               <TrackingToolbar
                 title={`${filtered.length} channel${filtered.length === 1 ? '' : 's'}`}
                 viewMode={viewMode}
@@ -168,7 +167,7 @@ export default function CompetitorChannelsPage() {
                 showVideoCount
               />
 
-              <div className="w-full px-3 py-5 sm:px-5 space-y-8">
+              <div className="w-full pt-6 space-y-8">
                 <CompetitorCompare
                   channels={filtered}
                   videosByChannel={videosByChannel}
@@ -191,7 +190,7 @@ export default function CompetitorChannelsPage() {
                 </div>
 
                 {selected && (
-                  <div className="border-t border-[var(--border)] pt-6 space-y-4">
+                  <div className="border-t border-[var(--border)] pt-8 space-y-4">
                     <div className="flex flex-col sm:flex-row gap-4 items-start">
                       {selected.thumbnail_url && (
                         <a
