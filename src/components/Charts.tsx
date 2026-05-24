@@ -185,51 +185,6 @@ export function VideoMetricsChart({ metrics, metricType }: VideoMetricsChartProp
   )
 }
 
-/** Separate scaled charts so likes/comments are visible alongside views */
-export function VideoPerformanceOverviewChart({ metrics }: { metrics: VideoMetric[] }) {
-  const sorted = sortByRecordedAt(metrics)
-  if (!sorted.length) {
-    return <p className="text-sm text-[var(--muted)] py-8 text-center">No chart data yet.</p>
-  }
-
-  const series: Array<{
-    key: VideoMetricsChartProps['metricType']
-    label: string
-    color: string
-  }> = [
-    { key: 'view_count', label: 'Views', color: '#4361ee' },
-    { key: 'like_count', label: 'Likes', color: '#7c3aed' },
-    { key: 'comment_count', label: 'Comments', color: '#06b6d4' },
-  ]
-
-  return (
-    <div className="space-y-6">
-      <p className="text-xs text-[var(--muted)]">
-        Each metric uses its own scale so smaller values (likes, comments) stay readable.
-      </p>
-      {series.map(({ key, label, color }) => {
-        const data = buildTimeSeries(sorted, (m) => (m as VideoMetric)[key] ?? 0)
-        const latest = data[data.length - 1]?.value ?? 0
-        return (
-          <div key={key}>
-            <div className="mb-2 flex items-baseline justify-between gap-2">
-              <h4 className="text-sm font-medium text-[var(--foreground)]">{label}</h4>
-              <span className="text-xs text-[var(--muted)]">Latest: {formatCompact(latest)}</span>
-            </div>
-            <SingleMetricAreaChart
-              data={data}
-              name={label}
-              color={color}
-              gradientId={`overview-${key}`}
-              height={160}
-            />
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 interface TopVideosChartProps {
   videos: Array<{ title: string; view_count?: number }>
 }
