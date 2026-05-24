@@ -94,7 +94,7 @@ export default function OnboardingPage() {
             </div>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Channel Added Successfully!</h2>
-          <p className="text-gray-600 mb-6">Your YouTube channel has been added and we're fetching your analytics data.</p>
+          <p className="text-gray-600 mb-6">Your YouTube channel has been added and we&apos;re fetching your analytics data.</p>
           <p className="text-sm text-gray-500">Redirecting to dashboard...</p>
         </div>
       </div>
@@ -131,7 +131,7 @@ export default function OnboardingPage() {
         <div className="text-center mb-12">
           <h1 className="text-3xl font-extrabold text-gray-900">Add Your YouTube Channel</h1>
           <p className="mt-4 text-lg text-gray-600">
-            Let's get started by adding your first YouTube channel to track its analytics.
+            Let&apos;s get started by adding your first YouTube channel to track its analytics.
           </p>
         </div>
 
@@ -213,7 +213,7 @@ export default function OnboardingPage() {
               <div className="flex-shrink-0 w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center mr-3">
                 <span className="text-xs font-medium">1</span>
               </div>
-              <p>We'll fetch your channel information and latest videos using the YouTube Data API.</p>
+              <p>We&apos;ll fetch your channel information and latest videos using the YouTube Data API.</p>
             </div>
             <div className="flex items-start">
               <div className="flex-shrink-0 w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center mr-3">
@@ -225,7 +225,7 @@ export default function OnboardingPage() {
               <div className="flex-shrink-0 w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center mr-3">
                 <span className="text-xs font-medium">3</span>
               </div>
-              <p>You'll have access to detailed charts and insights on your dashboard.</p>
+              <p>You&apos;ll have access to detailed charts and insights on your dashboard.</p>
             </div>
           </div>
         </div>

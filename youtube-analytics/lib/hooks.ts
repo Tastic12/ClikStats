@@ -123,7 +123,7 @@ export function useDashboardData() {
 }
 
 // Utility function to call edge functions
-export async function callEdgeFunction(functionName: string, payload: any) {
+export async function callEdgeFunction(functionName: string, payload: Record<string, unknown>) {
   const { data: { session } } = await supabase.auth.getSession()
   
   if (!session) {

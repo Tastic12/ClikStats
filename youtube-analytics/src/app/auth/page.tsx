@@ -67,8 +67,8 @@ export default function AuthPage() {
           router.push('/dashboard')
         }
       }
-    } catch (error: any) {
-      setMessage(error.message)
+    } catch (error: unknown) {
+      setMessage(error instanceof Error ? error.message : 'Authentication failed')
     } finally {
       setLoading(false)
     }

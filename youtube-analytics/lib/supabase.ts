@@ -2,59 +2,29 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-// Environment variables - handle both server and client side
-const getEnvVar = (name: string): string | undefined => {
-  // Check if we're in a browser environment
-  if (typeof window !== 'undefined') {
-    // Client-side: use process.env directly
-    return process.env[name]
-  }
-  // Server-side: also use process.env
-  return process.env[name]
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. Copy .env.local.example to .env.local and add your Supabase keys.'
+  )
 }
 
-// Fallback values for debugging
-const FALLBACK_URL = 'https://pbnkzbmktzeudohyajfc.supabase.co'
-const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBibmt6Ym1rdHpldWRvaHlhamZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyODQ1NDAsImV4cCI6MjA2Njg2MDU0MH0.uxkpkwIMF-mxPjWVBdVo9JJttQXbT5PFgY77GFHvmJc'
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-const supabaseUrl = getEnvVar('NEXT_PUBLIC_SUPABASE_URL') || FALLBACK_URL
-const supabaseAnonKey = getEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY') || FALLBACK_ANON_KEY
-
-console.log('Supabase client initialization:', {
-  url: supabaseUrl,
-  hasKey: !!supabaseAnonKey,
-  envUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  envKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-})
-
-if (!supabaseUrl) {
-  console.error('Missing env.NEXT_PUBLIC_SUPABASE_URL')
-  console.error('Available env vars:', Object.keys(process.env).filter(key => key.includes('SUPABASE')))
-}
-
-if (!supabaseAnonKey) {
-  console.error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
-}
-
-// Create Supabase client with fallback handling
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null
-
-// Server-side admin client (for server actions and API routes)
-// This is a function that only creates the client when called, not during module initialization
 export const createSupabaseAdmin = () => {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const url = getEnvVar('NEXT_PUBLIC_SUPABASE_URL')
-  
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+
   if (!serviceRoleKey) {
     throw new Error('Missing env.SUPABASE_SERVICE_ROLE_KEY')
   }
-  
+
   if (!url) {
     throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL')
   }
-  
+
   return createClient(url, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
@@ -151,4 +121,4 @@ export type Database = {
       }
     }
   }
-} 
+}

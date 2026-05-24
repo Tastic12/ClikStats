@@ -7,7 +7,7 @@ import { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { supabase } from '../../../lib/supabase'
 import { useChannels, useChannelMetrics, useVideos } from '../../../lib/hooks'
 import { ChannelMetricsChart, TopVideosChart, ChannelDistributionChart, MetricCard } from '../../components/Charts'
-import type { Channel, Video } from '../../../lib/supabase'
+import type { Channel } from '../../../lib/supabase'
 
 export default function DashboardPage() {
   const router = useRouter()
