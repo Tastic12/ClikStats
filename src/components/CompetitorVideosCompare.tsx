@@ -4,22 +4,7 @@ import type { CompetitorVideo } from '../../lib/supabase'
 import { formatCount } from '@/lib/format'
 import type { ViewMode } from './ViewModeToggle'
 import { VideoThumbnailLink } from './VideoThumbnailLink'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts'
-
-function formatCompact(value: number) {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`
-  return value.toLocaleString()
-}
+import { CompetitorVideosMetricsCharts } from './Charts'
 
 type CompetitorVideosCompareProps = {
   videos: CompetitorVideo[]
@@ -33,13 +18,6 @@ export function CompetitorVideosCompare({ videos, viewMode }: CompetitorVideosCo
   const compareSet = videos.slice(0, 8)
   const displaySet = compareSet.slice(0, Math.min(compareSet.length, 8))
   const columnCount = displaySet.length
-
-  const chartData = compareSet.map((v) => ({
-    name: v.title.length > 10 ? v.title.slice(0, 10) + '…' : v.title,
-    Views: v.view_count || 0,
-    Likes: v.like_count || 0,
-    Comments: v.comment_count || 0,
-  }))
 
   return (
     <div className="w-full space-y-6">
@@ -62,27 +40,7 @@ export function CompetitorVideosCompare({ videos, viewMode }: CompetitorVideosCo
         </div>
       </div>
 
-      <div className="w-full">
-        <p className="text-sm font-medium text-[var(--foreground)] mb-3">Metrics comparison</p>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke="#2a2a2a" strokeDasharray="4 4" vertical={false} />
-            <XAxis dataKey="name" tick={{ fill: '#9ca3af', fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis tickFormatter={formatCompact} tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} width={48} />
-            <Tooltip
-              contentStyle={{
-                background: '#121212',
-                border: '1px solid #333',
-                borderRadius: 8,
-              }}
-            />
-            <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-            <Bar dataKey="Views" fill="#4361ee" radius={[4, 4, 0, 0]} maxBarSize={32} />
-            <Bar dataKey="Likes" fill="#7c3aed" radius={[4, 4, 0, 0]} maxBarSize={32} />
-            <Bar dataKey="Comments" fill="#06b6d4" radius={[4, 4, 0, 0]} maxBarSize={32} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <CompetitorVideosMetricsCharts videos={compareSet} />
 
       <div className="w-full">
         <p className="text-sm font-medium text-[var(--foreground)] mb-3">

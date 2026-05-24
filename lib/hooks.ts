@@ -81,8 +81,16 @@ export function buildVideoChartMetrics(
       (a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
     )
   }
-  const now = new Date().toISOString()
-  const published = video.published_at || now
+
+  const endAt = new Date()
+  let startAt = new Date(video.published_at || endAt.toISOString())
+  if (startAt.getTime() > endAt.getTime()) {
+    startAt = new Date(endAt.getTime() - 7 * 24 * 60 * 60 * 1000)
+  }
+  if (startAt.getTime() === endAt.getTime()) {
+    startAt = new Date(endAt.getTime() - 24 * 60 * 60 * 1000)
+  }
+
   return [
     {
       id: 'snap-start',
@@ -90,7 +98,7 @@ export function buildVideoChartMetrics(
       view_count: Math.max(0, Math.floor((video.view_count || 0) * 0.85)),
       like_count: Math.max(0, Math.floor((video.like_count || 0) * 0.85)),
       comment_count: Math.max(0, Math.floor((video.comment_count || 0) * 0.85)),
-      recorded_at: published,
+      recorded_at: startAt.toISOString(),
     },
     {
       id: 'snap-now',
@@ -98,7 +106,7 @@ export function buildVideoChartMetrics(
       view_count: video.view_count || 0,
       like_count: video.like_count || 0,
       comment_count: video.comment_count || 0,
-      recorded_at: now,
+      recorded_at: endAt.toISOString(),
     },
   ]
 }
@@ -144,8 +152,8 @@ export function useChannelMetrics(channelId?: string) {
         .from('channel_metrics')
         .select('*')
         .eq('channel_id', channelId)
-        .order('recorded_at', { ascending: false })
-        .limit(30) // Last 30 data points
+        .order('recorded_at', { ascending: true })
+        .limit(30)
       
       if (error) throw error
       return data || []
@@ -195,8 +203,8 @@ export function useVideoMetrics(videoId?: string) {
         .from('video_metrics')
         .select('*')
         .eq('video_id', videoId)
-        .order('recorded_at', { ascending: false })
-        .limit(30) // Last 30 data points
+        .order('recorded_at', { ascending: true })
+        .limit(30)
       
       if (error) throw error
       return data || []

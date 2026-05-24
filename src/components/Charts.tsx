@@ -2,8 +2,6 @@
 
 import React from 'react'
 import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
   XAxis,
@@ -13,15 +11,27 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  Legend,
 } from 'recharts'
 import type { ChannelMetric, VideoMetric } from '../../lib/supabase'
 import type { CompetitorChannel } from '../../lib/supabase'
+import { formatChartDate, sortByRecordedAt, toChartSeries } from '../lib/chart-utils'
 
 function formatCompact(value: number) {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
   if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`
   return value.toLocaleString()
+}
+
+function yDomain(values: number[]): [number, number] {
+  if (!values.length) return [0, 1]
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  if (min === max) {
+    const pad = Math.max(max * 0.15, 1)
+    return [Math.max(0, min - pad), max + pad]
+  }
+  const pad = (max - min) * 0.12
+  return [Math.max(0, min - pad), max + pad]
 }
 
 function ChartTooltip({
@@ -46,54 +56,103 @@ function ChartTooltip({
   )
 }
 
-const axisStyle = { fill: '#9ca3af', fontSize: 11 }
-const gridStroke = '#2a2a2a'
+const axisStyle = { fill: '#a894c0', fontSize: 11 }
+const gridStroke = 'rgba(167, 139, 250, 0.12)'
+
+type TimeSeriesPoint = { date: string; value: number; timestamp: number }
+
+function buildTimeSeries(
+  metrics: Array<{ recorded_at: string }>,
+  getValue: (m: { recorded_at: string }) => number
+): TimeSeriesPoint[] {
+  return sortByRecordedAt(metrics).map((metric) => ({
+    timestamp: new Date(metric.recorded_at).getTime(),
+    date: formatChartDate(metric.recorded_at),
+    value: getValue(metric),
+  }))
+}
+
+function SingleMetricAreaChart({
+  data,
+  name,
+  color,
+  gradientId,
+  height = 240,
+}: {
+  data: TimeSeriesPoint[]
+  name: string
+  color: string
+  gradientId: string
+  height?: number
+}) {
+  if (!data.length) {
+    return <p className="text-sm text-[var(--muted)] py-6 text-center">No data yet.</p>
+  }
+
+  const domain = yDomain(data.map((d) => d.value))
+
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <AreaChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
+        <XAxis
+          dataKey="date"
+          tick={axisStyle}
+          axisLine={false}
+          tickLine={false}
+          interval="preserveStartEnd"
+        />
+        <YAxis
+          tickFormatter={formatCompact}
+          tick={axisStyle}
+          axisLine={false}
+          tickLine={false}
+          width={52}
+          domain={domain}
+        />
+        <Tooltip content={<ChartTooltip />} />
+        <Area
+          type="monotone"
+          dataKey="value"
+          name={name}
+          stroke={color}
+          strokeWidth={2.5}
+          fill={`url(#${gradientId})`}
+          dot={{ fill: color, strokeWidth: 0, r: 3 }}
+          activeDot={{ r: 5 }}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  )
+}
 
 interface ChannelMetricsChartProps {
   metrics: ChannelMetric[]
   metricType: 'subscriber_count' | 'view_count' | 'video_count'
 }
 
+const channelMetricLabels: Record<ChannelMetricsChartProps['metricType'], string> = {
+  subscriber_count: 'Subscribers',
+  view_count: 'Views',
+  video_count: 'Videos',
+}
+
 export function ChannelMetricsChart({ metrics, metricType }: ChannelMetricsChartProps) {
-  const data = [...metrics]
-    .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
-    .map((metric) => ({
-      date: new Date(metric.recorded_at).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-      }),
-      value: metric[metricType],
-    }))
-
-  if (!data.length) {
-    return <p className="text-sm text-[var(--muted)] py-8 text-center">No chart data yet.</p>
-  }
-
+  const data = toChartSeries(metrics, (m) => m[metricType] ?? 0) as TimeSeriesPoint[]
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id="channelGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#4361ee" stopOpacity={0.4} />
-            <stop offset="100%" stopColor="#4361ee" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
-        <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-        <YAxis tickFormatter={formatCompact} tick={axisStyle} axisLine={false} tickLine={false} width={48} />
-        <Tooltip content={<ChartTooltip />} />
-        <Area
-          type="monotone"
-          dataKey="value"
-          name="Value"
-          stroke="#4361ee"
-          strokeWidth={2.5}
-          fill="url(#channelGradient)"
-          dot={{ fill: '#4361ee', strokeWidth: 0, r: 3 }}
-          activeDot={{ r: 5, fill: '#7c8ff5' }}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+    <SingleMetricAreaChart
+      data={data}
+      name={channelMetricLabels[metricType]}
+      color="#a78bfa"
+      gradientId={`channel-${metricType}`}
+      height={280}
+    />
   )
 }
 
@@ -115,89 +174,59 @@ const metricColors: Record<VideoMetricsChartProps['metricType'], string> = {
 }
 
 export function VideoMetricsChart({ metrics, metricType }: VideoMetricsChartProps) {
-  const data = [...metrics]
-    .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
-    .map((metric) => ({
-      date: new Date(metric.recorded_at).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-      }),
-      value: metric[metricType],
-    }))
-
-  if (!data.length) {
-    return <p className="text-sm text-[var(--muted)] py-8 text-center">No chart data yet.</p>
-  }
-
-  const color = metricColors[metricType]
-  const gradId = `videoGrad-${metricType}`
-
+  const data = buildTimeSeries(metrics, (m) => (m as VideoMetric)[metricType] ?? 0)
   return (
-    <ResponsiveContainer width="100%" height={240}>
-      <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-            <stop offset="100%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
-        <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-        <YAxis tickFormatter={formatCompact} tick={axisStyle} axisLine={false} tickLine={false} width={48} />
-        <Tooltip content={<ChartTooltip />} />
-        <Area
-          type="monotone"
-          dataKey="value"
-          name={metricLabels[metricType]}
-          stroke={color}
-          strokeWidth={2.5}
-          fill={`url(#${gradId})`}
-          dot={{ fill: color, strokeWidth: 0, r: 3 }}
-          activeDot={{ r: 5 }}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+    <SingleMetricAreaChart
+      data={data}
+      name={metricLabels[metricType]}
+      color={metricColors[metricType]}
+      gradientId={`video-${metricType}`}
+    />
   )
 }
 
-/** Views, likes, and comments on one chart */
+/** Separate scaled charts so likes/comments are visible alongside views */
 export function VideoPerformanceOverviewChart({ metrics }: { metrics: VideoMetric[] }) {
-  const data = [...metrics]
-    .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
-    .map((metric) => ({
-      date: new Date(metric.recorded_at).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-      }),
-      Views: metric.view_count,
-      Likes: metric.like_count,
-      Comments: metric.comment_count,
-    }))
-
-  if (!data.length) {
+  const sorted = sortByRecordedAt(metrics)
+  if (!sorted.length) {
     return <p className="text-sm text-[var(--muted)] py-8 text-center">No chart data yet.</p>
   }
 
+  const series: Array<{
+    key: VideoMetricsChartProps['metricType']
+    label: string
+    color: string
+  }> = [
+    { key: 'view_count', label: 'Views', color: '#4361ee' },
+    { key: 'like_count', label: 'Likes', color: '#7c3aed' },
+    { key: 'comment_count', label: 'Comments', color: '#06b6d4' },
+  ]
+
   return (
-    <ResponsiveContainer width="100%" height={320}>
-      <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
-        <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-        <YAxis tickFormatter={formatCompact} tick={axisStyle} axisLine={false} tickLine={false} width={48} />
-        <Tooltip content={<ChartTooltip />} />
-        <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-        <Line type="monotone" dataKey="Views" stroke="#4361ee" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-        <Line type="monotone" dataKey="Likes" stroke="#7c3aed" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-        <Line
-          type="monotone"
-          dataKey="Comments"
-          stroke="#06b6d4"
-          strokeWidth={2}
-          dot={false}
-          activeDot={{ r: 4 }}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <div className="space-y-6">
+      <p className="text-xs text-[var(--muted)]">
+        Each metric uses its own scale so smaller values (likes, comments) stay readable.
+      </p>
+      {series.map(({ key, label, color }) => {
+        const data = buildTimeSeries(sorted, (m) => (m as VideoMetric)[key] ?? 0)
+        const latest = data[data.length - 1]?.value ?? 0
+        return (
+          <div key={key}>
+            <div className="mb-2 flex items-baseline justify-between gap-2">
+              <h4 className="text-sm font-medium text-[var(--foreground)]">{label}</h4>
+              <span className="text-xs text-[var(--muted)]">Latest: {formatCompact(latest)}</span>
+            </div>
+            <SingleMetricAreaChart
+              data={data}
+              name={label}
+              color={color}
+              gradientId={`overview-${key}`}
+              height={160}
+            />
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -214,12 +243,21 @@ export function TopVideosChart({ videos }: TopVideosChartProps) {
 
   if (!data.length) return null
 
+  const domain = yDomain(data.map((d) => d.views))
+
   return (
     <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+      <BarChart data={data} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
         <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
         <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} />
-        <YAxis tickFormatter={formatCompact} tick={axisStyle} axisLine={false} tickLine={false} width={48} />
+        <YAxis
+          tickFormatter={formatCompact}
+          tick={axisStyle}
+          axisLine={false}
+          tickLine={false}
+          width={52}
+          domain={domain}
+        />
         <Tooltip
           content={({ active, payload }) => {
             if (!active || !payload?.[0]) return null
@@ -232,9 +270,48 @@ export function TopVideosChart({ videos }: TopVideosChartProps) {
             )
           }}
         />
-        <Bar dataKey="views" fill="#4361ee" radius={[6, 6, 0, 0]} maxBarSize={48} />
+        <Bar dataKey="views" fill="#a78bfa" radius={[6, 6, 0, 0]} maxBarSize={48} />
       </BarChart>
     </ResponsiveContainer>
+  )
+}
+
+function ComparisonBarChart({
+  data,
+  dataKey,
+  label,
+  color,
+  height = 220,
+}: {
+  data: Array<{ name: string }>
+  dataKey: string
+  label: string
+  color: string
+  height?: number
+}) {
+  const values = data.map((d) => Number(d[dataKey as keyof typeof d] ?? 0))
+  const domain = yDomain(values)
+
+  return (
+    <div>
+      <h4 className="text-xs font-medium text-[var(--muted)] mb-2">{label}</h4>
+      <ResponsiveContainer width="100%" height={height}>
+        <BarChart data={data} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
+          <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
+          <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} />
+          <YAxis
+            tickFormatter={formatCompact}
+            tick={axisStyle}
+            axisLine={false}
+            tickLine={false}
+            width={52}
+            domain={domain}
+          />
+          <Tooltip content={<ChartTooltip />} />
+          <Bar dataKey={dataKey} name={label} fill={color} radius={[4, 4, 0, 0]} maxBarSize={40} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   )
 }
 
@@ -249,17 +326,49 @@ export function ChannelSnapshotComparisonChart({ channels }: { channels: Competi
   if (!data.length) return null
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
-        <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" vertical={false} />
-        <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} />
-        <YAxis tickFormatter={formatCompact} tick={axisStyle} axisLine={false} tickLine={false} width={52} />
-        <Tooltip content={<ChartTooltip />} />
-        <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-        <Bar dataKey="Subscribers" fill="#4361ee" radius={[4, 4, 0, 0]} maxBarSize={36} />
-        <Bar dataKey="Total views" fill="#7c3aed" radius={[4, 4, 0, 0]} maxBarSize={36} />
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="space-y-6">
+      <ComparisonBarChart
+        data={data}
+        dataKey="Subscribers"
+        label="Subscribers by channel"
+        color="#a78bfa"
+      />
+      <ComparisonBarChart
+        data={data}
+        dataKey="Total views"
+        label="Total channel views"
+        color="#7c3aed"
+      />
+    </div>
+  )
+}
+
+/** Side-by-side competitor videos: one bar chart per metric with its own scale */
+export function CompetitorVideosMetricsCharts({
+  videos,
+}: {
+  videos: Array<{
+    title: string
+    view_count?: number
+    like_count?: number
+    comment_count?: number
+  }>
+}) {
+  const data = videos.slice(0, 8).map((v) => ({
+    name: v.title.length > 12 ? v.title.slice(0, 12) + '…' : v.title,
+    Views: v.view_count || 0,
+    Likes: v.like_count || 0,
+    Comments: v.comment_count || 0,
+  }))
+
+  if (!data.length) return null
+
+  return (
+    <div className="space-y-6">
+      <ComparisonBarChart data={data} dataKey="Views" label="Views" color="#4361ee" height={200} />
+      <ComparisonBarChart data={data} dataKey="Likes" label="Likes" color="#7c3aed" height={200} />
+      <ComparisonBarChart data={data} dataKey="Comments" label="Comments" color="#06b6d4" height={200} />
+    </div>
   )
 }
 
