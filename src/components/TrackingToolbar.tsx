@@ -34,7 +34,7 @@ export function TrackingToolbar({
   const active = hasActiveFilters(filters)
 
   return (
-    <div className="border-b border-[var(--border)] px-4 py-3">
+    <div className="border-b border-[var(--border)] px-4 py-3 sm:px-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-[var(--foreground)]">{title}</h3>
         <div className="flex items-center gap-2">
@@ -66,17 +66,23 @@ export function TrackingToolbar({
               <>
                 <button
                   type="button"
-                  className="fixed inset-0 z-30 cursor-default"
+                  className="fixed inset-0 z-30 cursor-default bg-black/40 backdrop-blur-[2px] sm:bg-transparent sm:backdrop-blur-none"
                   aria-label="Close filters"
                   onClick={() => setFiltersOpen(false)}
                 />
-                <div className="absolute right-0 top-full z-40 mt-2 w-[min(calc(100vw-2rem),22rem)] max-h-[70vh] overflow-y-auto cs-surface p-4 shadow-xl">
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-[var(--foreground)]">Search & filters</span>
+                <div
+                  className="fixed inset-x-4 top-20 z-40 max-h-[calc(100vh-6rem)] overflow-y-auto cs-scrollbar rounded-xl cs-surface p-5 shadow-2xl sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:mt-2 sm:max-h-[min(85vh,36rem)] sm:w-[22rem] md:w-[26rem]"
+                  role="dialog"
+                  aria-label="Search and filters"
+                >
+                  <div className="mb-4 flex items-center justify-between gap-4">
+                    <span className="text-sm font-semibold text-[var(--foreground)]">
+                      Search & filters
+                    </span>
                     <button
                       type="button"
                       onClick={() => setFiltersOpen(false)}
-                      className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+                      className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] shrink-0"
                     >
                       Close
                     </button>

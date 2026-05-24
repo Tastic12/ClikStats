@@ -65,6 +65,7 @@ function RangePair({
   maxKey,
   filters,
   onChange,
+  embedded,
 }: {
   label: string
   minKey:
@@ -81,27 +82,38 @@ function RangePair({
   maxKey: typeof minKey
   filters: MetricFiltersState
   onChange: (f: MetricFiltersState) => void
+  embedded?: boolean
 }) {
+  const inputClass = embedded
+    ? 'cs-input w-full min-w-0 px-3 py-2.5 text-sm'
+    : 'cs-input w-full px-3 py-2 text-sm'
+
   return (
-    <div>
-      <label className="text-xs text-[var(--muted)] font-medium">{label}</label>
-      <div className="mt-1 grid grid-cols-2 gap-2">
-        <input
-          type="number"
-          min={0}
-          placeholder="Min"
-          value={filters[minKey]}
-          onChange={(e) => onChange({ ...filters, [minKey]: e.target.value })}
-          className="cs-input w-full px-3 py-2 text-sm"
-        />
-        <input
-          type="number"
-          min={0}
-          placeholder="Max"
-          value={filters[maxKey]}
-          onChange={(e) => onChange({ ...filters, [maxKey]: e.target.value })}
-          className="cs-input w-full px-3 py-2 text-sm"
-        />
+    <div className={embedded ? 'rounded-lg bg-[var(--elevated)]/80 p-3 border border-[var(--border)]' : ''}>
+      <label className="text-xs font-medium text-[var(--muted-2)]">{label}</label>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <div>
+          <span className="sr-only">{label} minimum</span>
+          <input
+            type="number"
+            min={0}
+            placeholder="Min"
+            value={filters[minKey]}
+            onChange={(e) => onChange({ ...filters, [minKey]: e.target.value })}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <span className="sr-only">{label} maximum</span>
+          <input
+            type="number"
+            min={0}
+            placeholder="Max"
+            value={filters[maxKey]}
+            onChange={(e) => onChange({ ...filters, [maxKey]: e.target.value })}
+            className={inputClass}
+          />
+        </div>
       </div>
     </div>
   )
@@ -147,9 +159,29 @@ export function MetricFilters({
           />
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <RangePair label="Views" minKey="minViews" maxKey="maxViews" filters={filters} onChange={onChange} />
-        <RangePair label="Likes" minKey="minLikes" maxKey="maxLikes" filters={filters} onChange={onChange} />
+      <div
+        className={
+          embedded
+            ? 'grid grid-cols-1 gap-3'
+            : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'
+        }
+      >
+        <RangePair
+          label="Views"
+          minKey="minViews"
+          maxKey="maxViews"
+          filters={filters}
+          onChange={onChange}
+          embedded={embedded}
+        />
+        <RangePair
+          label="Likes"
+          minKey="minLikes"
+          maxKey="maxLikes"
+          filters={filters}
+          onChange={onChange}
+          embedded={embedded}
+        />
         {showSubscribers && (
           <RangePair
             label="Subscribers"
@@ -157,6 +189,7 @@ export function MetricFilters({
             maxKey="maxSubscribers"
             filters={filters}
             onChange={onChange}
+            embedded={embedded}
           />
         )}
         {showVideoCount && (
@@ -166,6 +199,7 @@ export function MetricFilters({
             maxKey="maxVideoCount"
             filters={filters}
             onChange={onChange}
+            embedded={embedded}
           />
         )}
         {showComments && (
@@ -175,6 +209,7 @@ export function MetricFilters({
             maxKey="maxComments"
             filters={filters}
             onChange={onChange}
+            embedded={embedded}
           />
         )}
       </div>
@@ -182,7 +217,7 @@ export function MetricFilters({
   )
 
   if (embedded) {
-    return <div className="space-y-3">{inner}</div>
+    return <div className="space-y-4">{inner}</div>
   }
 
   return <div className="space-y-4">{inner}</div>

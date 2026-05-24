@@ -83,7 +83,7 @@ export default function MyVideosPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="cs-input w-full px-3 py-2 text-sm"
               />
-              <div className="divide-y divide-[var(--border)] max-h-[36rem] overflow-y-auto">
+              <div className="cs-scrollbar divide-y divide-[var(--border)] max-h-[36rem] overflow-y-auto pr-1">
                 {videosLoading ? (
                   <p className="p-4 text-sm text-[var(--muted)]">Loading…</p>
                 ) : (

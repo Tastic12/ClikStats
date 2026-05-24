@@ -98,6 +98,42 @@ body {
   opacity: 0.5;
 }
 
+/* Themed scrollbars */
+.cs-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 45%, transparent) transparent;
+}
+
+.cs-scrollbar::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.cs-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+
+.cs-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 50%, var(--elevated)),
+    color-mix(in srgb, var(--accent-hover) 40%, var(--elevated))
+  );
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.cs-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    var(--accent),
+    var(--accent-hover)
+  );
+  background-clip: padding-box;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
