@@ -1,31 +1,80 @@
 @import "tailwindcss";
 
+/* ClikStats brand — https://clikstats.com */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --app-bg: #0a0a0a;
+  --surface: #121212;
+  --elevated: #1a1a1a;
+  --card: #242424;
+  --foreground: #f5f5f5;
+  --muted: #9ca3af;
+  --muted-2: #cccccc;
+  --border: #333333;
+  --accent: #4361ee;
+  --accent-hover: #3a56d4;
+  --success: #22c55e;
+  --danger: #ef4444;
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --color-app-bg: var(--app-bg);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-card: var(--card);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
+  background: var(--app-bg);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Line clamp utilities */
+/* Reusable app surfaces */
+.cs-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+.cs-input {
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  border-radius: 0.5rem;
+}
+
+.cs-input::placeholder {
+  color: var(--muted);
+}
+
+.cs-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.cs-btn-primary {
+  background: var(--accent);
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+.cs-btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.cs-btn-primary:disabled {
+  opacity: 0.5;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

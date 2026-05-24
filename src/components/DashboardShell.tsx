@@ -19,18 +19,18 @@ export function DashboardShell({ children, email, onSignOut }: DashboardShellPro
   const pathname = usePathname()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
+    <div className="min-h-screen bg-[var(--app-bg)]">
+      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/dashboard" className="text-lg font-bold text-gray-900">
-            ClikStats
+          <Link href="/dashboard" className="text-lg font-bold text-[var(--foreground)]">
+            Clik<span className="text-[var(--accent)]">Stats</span>
           </Link>
           <div className="flex items-center gap-3">
             <ProfileMenu email={email} />
             <button
               type="button"
               onClick={onSignOut}
-              className="text-sm text-gray-600 hover:text-gray-900"
+              className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
             >
               Sign out
             </button>
@@ -48,10 +48,10 @@ export function DashboardShell({ children, email, onSignOut }: DashboardShellPro
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`block rounded-lg px-3 py-2 text-sm font-medium ${
+                  className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     active
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'text-[var(--muted)] hover:bg-[var(--card)] hover:text-[var(--foreground)]'
                   }`}
                 >
                   {item.label}

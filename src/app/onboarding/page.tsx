@@ -49,7 +49,7 @@ export default function OnboardingPage() {
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-gray-600">Loading…</p>
+        <p className="text-[var(--muted)]">Loading…</p>
       </div>
     )
   }
@@ -58,40 +58,40 @@ export default function OnboardingPage() {
     <DashboardShell email={user.email} onSignOut={handleSignOut}>
       <div className="max-w-xl space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome to ClikStats</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">Welcome to ClikStats</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
             Set your profile name and connect the YouTube channel you want to track.
           </p>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
-          <h2 className="text-sm font-semibold text-gray-900">1. Profile name</h2>
-          <p className="text-sm text-gray-500">Shown in the top right across the app.</p>
+        <div className="cs-card p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">1. Profile name</h2>
+          <p className="text-sm text-[var(--muted)]">Shown in the top right across the app.</p>
           <div className="flex gap-2">
             <input
               value={profileName}
               onChange={(e) => setProfileName(e.target.value)}
               placeholder="e.g. My Creator Account"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="cs-input flex-1 px-3 py-2 text-sm"
             />
             <button
               type="button"
               onClick={handleSaveProfileName}
               disabled={savingName || !profileName.trim()}
-              className="px-4 py-2 text-sm font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+              className="cs-btn-primary px-4 py-2 text-sm disabled:opacity-50"
             >
               {savingName ? 'Saving…' : 'Save'}
             </button>
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
-          <h2 className="text-sm font-semibold text-gray-900">2. Connect YouTube channel</h2>
+        <div className="cs-card p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">2. Connect YouTube channel</h2>
           <AddChannelForm onSuccess={handleChannelAdded} />
         </div>
 
-        <p className="text-center text-sm text-gray-500">
-          <Link href="/dashboard" className="text-blue-600 hover:underline">
+        <p className="text-center text-sm text-[var(--muted)]">
+          <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
             Skip for now →
           </Link>
         </p>

@@ -7,14 +7,15 @@ import { supabase } from '../../../../../lib/supabase'
 import { useCompetitorVideos, initCompetitorVideo } from '../../../../../lib/hooks'
 import { DashboardShell } from '../../../../components/DashboardShell'
 import { TrackingLayout } from '../../../../components/TrackingLayout'
+import { ItemTabs } from '../../../../components/ItemTabs'
+import { VideoThumbnailLink } from '../../../../components/VideoThumbnailLink'
 import {
   MetricFilters,
   defaultMetricFilters,
   applyMetricFilters,
   type MetricFiltersState,
 } from '../../../../components/MetricFilters'
-import { formatCount } from '@/lib/format'
-import { youtubeWatchUrl } from '@/lib/youtube'
+import { MetricCard } from '../../../../components/Charts'
 
 export default function CompetitorVideosPage() {
   const router = useRouter()
@@ -23,6 +24,7 @@ export default function CompetitorVideosPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [filters, setFilters] = useState<MetricFiltersState>(defaultMetricFilters)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const { videos, isLoading, mutate } = useCompetitorVideos()
 
@@ -36,6 +38,15 @@ export default function CompetitorVideosPage() {
   const filtered = applyMetricFilters(videos || [], filters).sort(
     (a, b) => (b.view_count || 0) - (a.view_count || 0)
   )
+
+  const selected = filtered.find((v) => v.id === selectedId) || filtered[0] || null
+
+  useEffect(() => {
+    if (filtered.length && !selectedId) setSelectedId(filtered[0].id)
+    if (selectedId && !filtered.find((v) => v.id === selectedId)) {
+      setSelectedId(filtered[0]?.id ?? null)
+    }
+  }, [filtered, selectedId])
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,8 +65,8 @@ export default function CompetitorVideosPage() {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-gray-600">Loading…</p>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--app-bg)]">
+        <p className="text-[var(--muted)]">Loading…</p>
       </div>
     )
   }
@@ -70,8 +81,10 @@ export default function CompetitorVideosPage() {
     >
       <TrackingLayout>
         <div className="space-y-6">
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-2">Track competitor video</h2>
+          <div className="cs-card p-6">
+            <h2 className="text-sm font-semibold text-[var(--foreground)] mb-2">
+              Track competitor video
+            </h2>
             <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2">
               <input
                 type="url"
@@ -79,57 +92,85 @@ export default function CompetitorVideosPage() {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://www.youtube.com/watch?v=…"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                className="cs-input flex-1 px-3 py-2 text-sm"
               />
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
+              <button type="submit" disabled={loading} className="cs-btn-primary px-4 py-2 text-sm">
                 {loading ? 'Adding…' : 'Add video'}
               </button>
             </form>
-            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+            {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
           </div>
 
           <MetricFilters filters={filters} onChange={setFilters} />
 
           {isLoading ? (
-            <p className="text-center text-gray-500 py-8">Loading videos…</p>
+            <p className="text-center text-[var(--muted)] py-8">Loading videos…</p>
           ) : !filtered.length ? (
-            <p className="text-center text-gray-500 py-8">No videos match your filters.</p>
+            <p className="text-center text-[var(--muted)] py-8">No videos match your filters.</p>
           ) : (
-            <div className="grid gap-4">
-              {filtered.map((video, index) => (
-                <a
-                  key={video.id}
-                  href={youtubeWatchUrl(video.youtube_video_id)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex gap-4 rounded-xl border border-gray-200 bg-white p-4 hover:border-blue-300 hover:shadow-sm transition"
-                >
-                  <span className="text-lg font-bold text-gray-300 w-6">{index + 1}</span>
-                  {video.thumbnail_url && (
-                    <img
-                      src={video.thumbnail_url}
-                      alt=""
-                      className="w-32 h-20 object-cover rounded-md bg-gray-100"
+            <>
+              <ItemTabs
+                items={filtered.map((v) => ({
+                  id: v.id,
+                  label: v.title.length > 28 ? v.title.slice(0, 28) + '…' : v.title,
+                  thumbnailUrl: v.thumbnail_url,
+                }))}
+                selectedId={selected?.id ?? null}
+                onSelect={setSelectedId}
+              />
+
+              {selected && (
+                <div className="cs-card p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <VideoThumbnailLink
+                      videoId={selected.youtube_video_id}
+                      title={selected.title}
+                      thumbnailUrl={selected.thumbnail_url}
+                      subtitle={
+                        selected.channel_name
+                          ? `${selected.channel_name} · ${selected.published_at ? new Date(selected.published_at).toLocaleDateString() : ''}`
+                          : undefined
+                      }
+                      views={selected.view_count}
+                      likes={selected.like_count}
+                      comments={selected.comment_count}
+                      layout="card"
                     />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-900 line-clamp-2">{video.title}</p>
-                    {video.channel_name && (
-                      <p className="text-sm text-gray-500 mt-1">{video.channel_name}</p>
-                    )}
-                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-600">
-                      <span>{formatCount(video.view_count || 0)} views</span>
-                      <span>{formatCount(video.like_count || 0)} likes</span>
-                      <span>{formatCount(video.comment_count || 0)} comments</span>
+                    <div className="space-y-4">
+                      {selected.channel_name && (
+                        <p className="text-sm text-[var(--muted)]">{selected.channel_name}</p>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <MetricCard title="Views" value={selected.view_count || 0} format="views" />
+                        <MetricCard title="Likes" value={selected.like_count || 0} format="number" />
+                        <MetricCard
+                          title="Comments"
+                          value={selected.comment_count || 0}
+                          format="number"
+                        />
+                      </div>
                     </div>
                   </div>
-                </a>
-              ))}
-            </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filtered.map((video, index) => (
+                  <VideoThumbnailLink
+                    key={video.id}
+                    videoId={video.youtube_video_id}
+                    title={video.title}
+                    thumbnailUrl={video.thumbnail_url}
+                    subtitle={video.channel_name}
+                    views={video.view_count}
+                    likes={video.like_count}
+                    comments={video.comment_count}
+                    rank={index + 1}
+                    layout="card"
+                  />
+                ))}
+              </div>
+            </>
           )}
         </div>
       </TrackingLayout>

@@ -38,7 +38,7 @@ export function AddChannelForm({ onSuccess, compact }: AddChannelFormProps) {
   return (
     <form onSubmit={handleSubmit} className={compact ? 'space-y-3' : 'space-y-4'}>
       <div>
-        <label htmlFor="channel-url" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="channel-url" className="block text-sm font-medium text-[var(--foreground)] mb-1">
           YouTube channel URL
         </label>
         <input
@@ -48,15 +48,11 @@ export function AddChannelForm({ onSuccess, compact }: AddChannelFormProps) {
           value={channelUrl}
           onChange={(e) => setChannelUrl(e.target.value)}
           placeholder="https://www.youtube.com/@yourchannel"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+          className="cs-input w-full px-3 py-2 text-sm"
         />
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
-      >
+      {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
+      <button type="submit" disabled={loading} className="cs-btn-primary px-4 py-2 text-sm disabled:opacity-50">
         {loading ? 'Connecting…' : 'Connect channel'}
       </button>
     </form>

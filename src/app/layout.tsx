@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "YouTube Analytics Pro",
-  description: "Track your YouTube channels, analyze performance metrics, and grow your audience with comprehensive analytics and real-time insights.",
+  title: "ClikStats",
+  description: "YouTube analytics for creators — track your channel, analyze competitors, and grow faster.",
 };
 
 export default function RootLayout({

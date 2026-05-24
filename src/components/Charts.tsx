@@ -40,16 +40,16 @@ export function ChannelMetricsChart({ metrics, metricType }: ChannelMetricsChart
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#333" />
         <XAxis dataKey="date" />
         <YAxis tickFormatter={formatValue} />
         <Tooltip formatter={(value) => formatValue(Number(value))} />
         <Line 
           type="monotone" 
           dataKey="value" 
-          stroke="#8884d8" 
+          stroke="#4361ee" 
           strokeWidth={2}
-          dot={{ fill: '#8884d8' }}
+          dot={{ fill: '#4361ee' }}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -79,16 +79,16 @@ export function VideoMetricsChart({ metrics, metricType }: VideoMetricsChartProp
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#333" />
         <XAxis dataKey="date" />
         <YAxis tickFormatter={formatValue} />
         <Tooltip formatter={(value) => formatValue(Number(value))} />
         <Line 
           type="monotone" 
           dataKey="value" 
-          stroke="#82ca9d" 
+          stroke="#60a5fa" 
           strokeWidth={2}
-          dot={{ fill: '#82ca9d' }}
+          dot={{ fill: '#60a5fa' }}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -120,11 +120,11 @@ export function TopVideosChart({ videos }: TopVideosChartProps) {
   return (
     <ResponsiveContainer width="100%" height={400}>
       <BarChart data={data} layout="horizontal">
-        <CartesianGrid strokeDasharray="3 3" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#333" />
         <XAxis type="number" tickFormatter={formatValue} />
         <YAxis type="category" dataKey="title" width={200} />
         <Tooltip formatter={(value) => formatValue(Number(value))} />
-        <Bar dataKey="views" fill="#8884d8" />
+        <Bar dataKey="views" fill="#4361ee" />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -197,17 +197,20 @@ export function MetricCard({ title, value, change, format = 'number' }: MetricCa
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+    <div className="cs-card p-6">
+      <h3 className="text-sm font-medium text-[var(--muted)]">{title}</h3>
       <div className="mt-2 flex items-baseline">
-        <div className="text-2xl font-semibold text-gray-900">
+        <div className="text-2xl font-semibold text-[var(--foreground)]">
           {formatValue(value)}
         </div>
-        {change !== undefined && (
-          <div className={`ml-2 flex items-baseline text-sm font-semibold ${
-            change >= 0 ? 'text-green-600' : 'text-red-600'
-          }`}>
-            {change >= 0 ? '+' : ''}{change}%
+        {change !== undefined && change !== 0 && (
+          <div
+            className={`ml-2 text-sm font-semibold ${
+              change >= 0 ? 'text-[var(--success)]' : 'text-[var(--danger)]'
+            }`}
+          >
+            {change >= 0 ? '+' : ''}
+            {formatValue(Math.abs(change))}
           </div>
         )}
       </div>
