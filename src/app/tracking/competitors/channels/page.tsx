@@ -33,7 +33,7 @@ export default function CompetitorChannelsPage() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [filters, setFilters] = useState<MetricFiltersState>(defaultMetricFilters)
+  const [appliedFilters, setAppliedFilters] = useState<MetricFiltersState>(defaultMetricFilters)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [categoryId, setCategoryId] = useState<string | null>(ALL_CATEGORIES_ID)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -48,7 +48,7 @@ export default function CompetitorChannelsPage() {
     return list.filter((c) => c.group_id === categoryId)
   }, [channels, categoryId])
 
-  const filtered = applyMetricFilters(inCategory, filters)
+  const filtered = applyMetricFilters(inCategory, appliedFilters)
   const channelIds = filtered.map((c) => c.id)
 
   const { videosByChannel, isLoading: batchLoading } = useCompetitorChannelVideosBatch(channelIds)
@@ -161,10 +161,15 @@ export default function CompetitorChannelsPage() {
                 title={`${filtered.length} channel${filtered.length === 1 ? '' : 's'}`}
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
-                filters={filters}
-                onFiltersChange={setFilters}
+                appliedFilters={appliedFilters}
+                onApplyFilters={setAppliedFilters}
                 showSubscribers
                 showVideoCount
+                showLikes={false}
+                filterHint="Filters use each channel’s total stats from YouTube (subscribers, lifetime views, video count)—not individual video metrics. Click Apply filters when done."
+                filterLabels={{
+                  views: 'Total channel views',
+                }}
               />
 
               <div className="w-full pt-6 space-y-8">

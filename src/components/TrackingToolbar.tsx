@@ -1,20 +1,29 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ViewModeToggle, type ViewMode } from './ViewModeToggle'
-import { MetricFilters, type MetricFiltersState, hasActiveFilters } from './MetricFilters'
+import {
+  MetricFilters,
+  defaultMetricFilters,
+  type MetricFiltersState,
+  hasActiveFilters,
+  type MetricFiltersLabels,
+} from './MetricFilters'
 
 type TrackingToolbarProps = {
   title: string
   viewMode: ViewMode
   onViewModeChange: (mode: ViewMode) => void
-  filters: MetricFiltersState
-  onFiltersChange: (filters: MetricFiltersState) => void
+  appliedFilters: MetricFiltersState
+  onApplyFilters: (filters: MetricFiltersState) => void
   showSubscribers?: boolean
   showVideoCount?: boolean
   showComments?: boolean
+  showLikes?: boolean
   showViewToggle?: boolean
+  filterLabels?: MetricFiltersLabels
+  filterHint?: string
   children?: ReactNode
 }
 
@@ -22,16 +31,39 @@ export function TrackingToolbar({
   title,
   viewMode,
   onViewModeChange,
-  filters,
-  onFiltersChange,
+  appliedFilters,
+  onApplyFilters,
   showSubscribers,
   showVideoCount,
   showComments,
+  showLikes = true,
   showViewToggle = true,
+  filterLabels,
+  filterHint,
   children,
 }: TrackingToolbarProps) {
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const active = hasActiveFilters(filters)
+  const [draftFilters, setDraftFilters] = useState<MetricFiltersState>(appliedFilters)
+  const active = hasActiveFilters(appliedFilters)
+  const draftDirty =
+    JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters)
+
+  useEffect(() => {
+    if (filtersOpen) {
+      setDraftFilters(appliedFilters)
+    }
+  }, [filtersOpen, appliedFilters])
+
+  const handleApply = () => {
+    onApplyFilters(draftFilters)
+    setFiltersOpen(false)
+  }
+
+  const handleClear = () => {
+    onApplyFilters(defaultMetricFilters)
+    setDraftFilters(defaultMetricFilters)
+    setFiltersOpen(false)
+  }
 
   return (
     <div className="border-b border-[var(--border)] px-4 py-3 sm:px-0">
@@ -74,6 +106,12 @@ export function TrackingToolbar({
                   className="fixed inset-x-4 top-20 z-40 max-h-[calc(100vh-6rem)] overflow-y-auto cs-scrollbar rounded-xl cs-surface p-5 shadow-2xl sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:mt-2 sm:max-h-[min(85vh,36rem)] sm:w-[22rem] md:w-[26rem]"
                   role="dialog"
                   aria-label="Search and filters"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+                      e.preventDefault()
+                      handleApply()
+                    }
+                  }}
                 >
                   <div className="mb-4 flex items-center justify-between gap-4">
                     <span className="text-sm font-semibold text-[var(--foreground)]">
@@ -87,14 +125,40 @@ export function TrackingToolbar({
                       Close
                     </button>
                   </div>
+                  {filterHint && (
+                    <p className="text-xs text-[var(--muted)] mb-4 -mt-2">{filterHint}</p>
+                  )}
                   <MetricFilters
                     embedded
-                    filters={filters}
-                    onChange={onFiltersChange}
+                    filters={draftFilters}
+                    onChange={setDraftFilters}
                     showSubscribers={showSubscribers}
                     showVideoCount={showVideoCount}
                     showComments={showComments}
+                    showLikes={showLikes}
+                    labels={filterLabels}
                   />
+                  <div className="mt-5 flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
+                    <button
+                      type="button"
+                      onClick={handleApply}
+                      className="cs-btn-primary flex-1 min-w-[8rem] px-4 py-2.5 text-sm"
+                    >
+                      Apply filters
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClear}
+                      className="px-4 py-2.5 text-sm rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)]"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  {draftDirty && (
+                    <p className="mt-2 text-xs text-[var(--muted)]">
+                      Changes are not applied until you click Apply filters.
+                    </p>
+                  )}
                 </div>
               </>
             )}

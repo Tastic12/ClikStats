@@ -32,13 +32,23 @@ export const defaultMetricFilters: MetricFiltersState = {
   maxComments: '',
 }
 
+export type MetricFiltersLabels = {
+  views?: string
+  likes?: string
+  subscribers?: string
+  videoCount?: string
+  comments?: string
+}
+
 type MetricFiltersProps = {
   filters: MetricFiltersState
   onChange: (filters: MetricFiltersState) => void
   showSubscribers?: boolean
   showVideoCount?: boolean
   showComments?: boolean
+  showLikes?: boolean
   embedded?: boolean
+  labels?: MetricFiltersLabels
 }
 
 export function hasActiveFilters(filters: MetricFiltersState): boolean {
@@ -125,8 +135,16 @@ export function MetricFilters({
   showSubscribers,
   showVideoCount,
   showComments,
+  showLikes = true,
   embedded = false,
+  labels = {},
 }: MetricFiltersProps) {
+  const viewsLabel = labels.views ?? 'Views'
+  const likesLabel = labels.likes ?? 'Likes'
+  const subscribersLabel = labels.subscribers ?? 'Subscribers'
+  const videoCountLabel = labels.videoCount ?? 'Videos on channel'
+  const commentsLabel = labels.comments ?? 'Comments'
+
   const inner = (
     <>
       {!embedded && (
@@ -167,24 +185,26 @@ export function MetricFilters({
         }
       >
         <RangePair
-          label="Views"
+          label={viewsLabel}
           minKey="minViews"
           maxKey="maxViews"
           filters={filters}
           onChange={onChange}
           embedded={embedded}
         />
-        <RangePair
-          label="Likes"
-          minKey="minLikes"
-          maxKey="maxLikes"
-          filters={filters}
-          onChange={onChange}
-          embedded={embedded}
-        />
+        {showLikes && (
+          <RangePair
+            label={likesLabel}
+            minKey="minLikes"
+            maxKey="maxLikes"
+            filters={filters}
+            onChange={onChange}
+            embedded={embedded}
+          />
+        )}
         {showSubscribers && (
           <RangePair
-            label="Subscribers"
+            label={subscribersLabel}
             minKey="minSubscribers"
             maxKey="maxSubscribers"
             filters={filters}
@@ -194,7 +214,7 @@ export function MetricFilters({
         )}
         {showVideoCount && (
           <RangePair
-            label="Videos on channel"
+            label={videoCountLabel}
             minKey="minVideoCount"
             maxKey="maxVideoCount"
             filters={filters}
@@ -204,7 +224,7 @@ export function MetricFilters({
         )}
         {showComments && (
           <RangePair
-            label="Comments"
+            label={commentsLabel}
             minKey="minComments"
             maxKey="maxComments"
             filters={filters}
@@ -234,9 +254,19 @@ type FilterableItem = {
   comment_count?: number
 }
 
+function parseFilterNumber(raw: string): number | null {
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  const n = Number(trimmed)
+  if (!Number.isFinite(n) || n < 0) return null
+  return n
+}
+
 function inRange(value: number, min: string, max: string) {
-  if (min && value < Number(min)) return false
-  if (max && value > Number(max)) return false
+  const minN = parseFilterNumber(min)
+  const maxN = parseFilterNumber(max)
+  if (minN !== null && value < minN) return false
+  if (maxN !== null && value > maxN) return false
   return true
 }
 

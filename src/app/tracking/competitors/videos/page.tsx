@@ -30,7 +30,7 @@ export default function CompetitorVideosPage() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [filters, setFilters] = useState<MetricFiltersState>(defaultMetricFilters)
+  const [appliedFilters, setAppliedFilters] = useState<MetricFiltersState>(defaultMetricFilters)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [categoryId, setCategoryId] = useState<string | null>(ALL_CATEGORIES_ID)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -45,7 +45,7 @@ export default function CompetitorVideosPage() {
     return list.filter((v) => v.group_id === categoryId)
   }, [videos, categoryId])
 
-  const filtered = applyMetricFilters(inCategory, filters).sort(
+  const filtered = applyMetricFilters(inCategory, appliedFilters).sort(
     (a, b) => (b.view_count || 0) - (a.view_count || 0)
   )
 
@@ -154,9 +154,15 @@ export default function CompetitorVideosPage() {
                 title={`${filtered.length} video${filtered.length === 1 ? '' : 's'}`}
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
-                filters={filters}
-                onFiltersChange={setFilters}
+                appliedFilters={appliedFilters}
+                onApplyFilters={setAppliedFilters}
                 showComments
+                filterHint="Filters apply to each tracked video’s current views, likes, and comments. Click Apply filters when done."
+                filterLabels={{
+                  views: 'Video views',
+                  likes: 'Video likes',
+                  comments: 'Video comments',
+                }}
               />
 
               <div className="w-full pt-6 space-y-8">
