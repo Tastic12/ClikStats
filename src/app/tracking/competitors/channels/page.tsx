@@ -16,9 +16,10 @@ import { TrackingLayout } from '../../../../components/TrackingLayout'
 import { CategoryTabs, ALL_CATEGORIES_ID } from '../../../../components/CategoryTabs'
 import { ItemTabs } from '../../../../components/ItemTabs'
 import { CompetitorCompare } from '../../../../components/CompetitorCompare'
-import { VideoThumbnailLink } from '../../../../components/VideoThumbnailLink'
+import { TrackingToolbar } from '../../../../components/TrackingToolbar'
+import { VideoResultsLayout } from '../../../../components/VideoResultsLayout'
+import type { ViewMode } from '../../../../components/ViewModeToggle'
 import {
-  MetricFilters,
   defaultMetricFilters,
   applyMetricFilters,
   type MetricFiltersState,
@@ -33,6 +34,7 @@ export default function CompetitorChannelsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [filters, setFilters] = useState<MetricFiltersState>(defaultMetricFilters)
+  const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [categoryId, setCategoryId] = useState<string | null>(ALL_CATEGORIES_ID)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
@@ -147,13 +149,6 @@ export default function CompetitorChannelsPage() {
             {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
           </div>
 
-          <MetricFilters
-            filters={filters}
-            onChange={setFilters}
-            showSubscribers
-            showVideoCount
-          />
-
           {isLoading || batchLoading ? (
             <p className="text-center text-[var(--muted)] py-8">Loading competitors…</p>
           ) : !filtered.length ? (
@@ -161,105 +156,116 @@ export default function CompetitorChannelsPage() {
               No channels in this category match your filters. Add a channel or try another category.
             </p>
           ) : (
-            <>
-              {filtered.length > 1 && (
-                <CompetitorCompare
-                  channels={filtered}
-                  videosByChannel={videosByChannel}
-                />
-              )}
+            <div className="cs-card overflow-hidden">
+              <TrackingToolbar
+                title={`${filtered.length} channel${filtered.length === 1 ? '' : 's'}`}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                filters={filters}
+                onFiltersChange={setFilters}
+                showSubscribers
+                showVideoCount
+              />
 
-              <div>
-                <h3 className="text-sm font-semibold text-[var(--foreground)] mb-2">
-                  {filtered.length === 1 ? 'Channel' : 'Focus on one channel'}
-                </h3>
-                <ItemTabs
-                  items={filtered.map((c) => ({
-                    id: c.id,
-                    label: c.channel_name,
-                    thumbnailUrl: c.thumbnail_url,
-                  }))}
-                  selectedId={selected?.id ?? null}
-                  onSelect={setSelectedId}
-                />
-              </div>
+              <div className="p-4 space-y-6">
+                {filtered.length > 1 && (
+                  <CompetitorCompare
+                    channels={filtered}
+                    videosByChannel={videosByChannel}
+                    viewMode={viewMode}
+                  />
+                )}
 
-              {selected && (
-                <div className="cs-card p-6 space-y-6">
-                  <div className="flex flex-col sm:flex-row gap-4 items-start">
-                    {selected.thumbnail_url && (
-                      <a
-                        href={selected.channel_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0"
-                      >
-                        <img
-                          src={selected.thumbnail_url}
-                          alt=""
-                          className="h-24 w-24 rounded-full object-cover ring-2 ring-[var(--accent)] hover:opacity-90"
-                        />
-                      </a>
-                    )}
-                    <div>
-                      <h3 className="text-xl font-bold text-[var(--foreground)]">
-                        {selected.channel_name}
-                      </h3>
-                      <a
-                        href={selected.channel_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-[var(--accent)] hover:underline"
-                      >
-                        View channel on YouTube ↗
-                      </a>
-                      <div className="mt-3 flex flex-wrap gap-4 text-sm text-[var(--muted-2)]">
-                        <span>{formatCount(selected.subscriber_count || 0)} subscribers</span>
-                        <span>{formatCount(selected.view_count || 0)} total views</span>
-                        <span>{formatCount(selected.video_count || 0)} videos</span>
+                <div>
+                  <h3 className="text-xs font-medium text-[var(--muted)] mb-2">
+                    {filtered.length === 1 ? 'Channel' : 'Focus on one channel'}
+                  </h3>
+                  <ItemTabs
+                    items={filtered.map((c) => ({
+                      id: c.id,
+                      label: c.channel_name,
+                      thumbnailUrl: c.thumbnail_url,
+                    }))}
+                    selectedId={selected?.id ?? null}
+                    onSelect={setSelectedId}
+                  />
+                </div>
+
+                {selected && (
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--elevated)] p-4 space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-3 items-start">
+                      {selected.thumbnail_url && (
+                        <a
+                          href={selected.channel_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0"
+                        >
+                          <img
+                            src={selected.thumbnail_url}
+                            alt=""
+                            className="h-16 w-16 rounded-full object-cover ring-2 ring-[var(--accent)] hover:opacity-90"
+                          />
+                        </a>
+                      )}
+                      <div>
+                        <h3 className="text-lg font-bold text-[var(--foreground)]">
+                          {selected.channel_name}
+                        </h3>
+                        <a
+                          href={selected.channel_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-[var(--accent)] hover:underline"
+                        >
+                          View on YouTube ↗
+                        </a>
+                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-[var(--muted-2)]">
+                          <span>{formatCount(selected.subscriber_count || 0)} subscribers</span>
+                          <span>{formatCount(selected.view_count || 0)} views</span>
+                          <span>{formatCount(selected.video_count || 0)} videos</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <h4 className="text-sm font-semibold text-[var(--foreground)] mb-3">
-                      Top 5 videos
-                    </h4>
-                    {videosLoading ? (
-                      <p className="text-[var(--muted)] text-sm">Loading videos…</p>
-                    ) : channelVideos && channelVideos.length > 0 ? (
-                      <>
-                        <div className="mb-6">
-                          <TopVideosChart
-                            videos={channelVideos.map((v) => ({
-                              title: v.title,
-                              view_count: v.view_count,
-                            }))}
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {channelVideos.map((v, i) => (
-                            <VideoThumbnailLink
-                              key={v.id}
-                              videoId={v.video_id}
-                              title={v.title}
-                              thumbnailUrl={v.thumbnail_url}
-                              views={v.view_count}
-                              likes={v.like_count}
-                              comments={v.comment_count}
-                              rank={i + 1}
-                              layout="card"
+                    <div>
+                      <h4 className="text-xs font-semibold text-[var(--foreground)] mb-2">
+                        Top 5 videos
+                      </h4>
+                      {videosLoading ? (
+                        <p className="text-[var(--muted)] text-sm">Loading videos…</p>
+                      ) : channelVideos && channelVideos.length > 0 ? (
+                        <>
+                          <div className="mb-4">
+                            <TopVideosChart
+                              videos={channelVideos.map((v) => ({
+                                title: v.title,
+                                view_count: v.view_count,
+                              }))}
                             />
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-sm text-[var(--muted)]">No videos loaded for this channel.</p>
-                    )}
+                          </div>
+                          <VideoResultsLayout
+                            viewMode={viewMode}
+                            videos={channelVideos.map((v) => ({
+                              id: v.id,
+                              videoId: v.video_id,
+                              title: v.title,
+                              thumbnailUrl: v.thumbnail_url,
+                              views: v.view_count,
+                              likes: v.like_count,
+                              comments: v.comment_count,
+                            }))}
+                            maxItems={5}
+                          />
+                        </>
+                      ) : (
+                        <p className="text-sm text-[var(--muted)]">No videos loaded for this channel.</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </TrackingLayout>

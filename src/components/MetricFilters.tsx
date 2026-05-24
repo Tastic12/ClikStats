@@ -38,6 +38,25 @@ type MetricFiltersProps = {
   showSubscribers?: boolean
   showVideoCount?: boolean
   showComments?: boolean
+  embedded?: boolean
+}
+
+export function hasActiveFilters(filters: MetricFiltersState): boolean {
+  return (
+    !!filters.search ||
+    !!filters.dateFrom ||
+    !!filters.dateTo ||
+    !!filters.minViews ||
+    !!filters.maxViews ||
+    !!filters.minLikes ||
+    !!filters.maxLikes ||
+    !!filters.minSubscribers ||
+    !!filters.maxSubscribers ||
+    !!filters.minVideoCount ||
+    !!filters.maxVideoCount ||
+    !!filters.minComments ||
+    !!filters.maxComments
+  )
 }
 
 function RangePair({
@@ -94,10 +113,13 @@ export function MetricFilters({
   showSubscribers,
   showVideoCount,
   showComments,
+  embedded = false,
 }: MetricFiltersProps) {
-  return (
-    <div className="cs-card p-4 space-y-4">
-      <h3 className="text-sm font-semibold text-[var(--foreground)]">Search & filters</h3>
+  const inner = (
+    <>
+      {!embedded && (
+        <h3 className="text-sm font-semibold text-[var(--foreground)]">Search & filters</h3>
+      )}
       <input
         type="search"
         placeholder="Search by name or title…"
@@ -156,8 +178,14 @@ export function MetricFilters({
           />
         )}
       </div>
-    </div>
+    </>
   )
+
+  if (embedded) {
+    return <div className="space-y-3">{inner}</div>
+  }
+
+  return <div className="cs-card p-4 space-y-4">{inner}</div>
 }
 
 type FilterableItem = {

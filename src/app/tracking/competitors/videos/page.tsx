@@ -14,9 +14,10 @@ import { TrackingLayout } from '../../../../components/TrackingLayout'
 import { CategoryTabs, ALL_CATEGORIES_ID } from '../../../../components/CategoryTabs'
 import { ItemTabs } from '../../../../components/ItemTabs'
 import { CompetitorVideosCompare } from '../../../../components/CompetitorVideosCompare'
+import { TrackingToolbar } from '../../../../components/TrackingToolbar'
 import { VideoThumbnailLink } from '../../../../components/VideoThumbnailLink'
+import type { ViewMode } from '../../../../components/ViewModeToggle'
 import {
-  MetricFilters,
   defaultMetricFilters,
   applyMetricFilters,
   type MetricFiltersState,
@@ -30,6 +31,7 @@ export default function CompetitorVideosPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [filters, setFilters] = useState<MetricFiltersState>(defaultMetricFilters)
+  const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [categoryId, setCategoryId] = useState<string | null>(ALL_CATEGORIES_ID)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
@@ -140,8 +142,6 @@ export default function CompetitorVideosPage() {
             {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
           </div>
 
-          <MetricFilters filters={filters} onChange={setFilters} showComments />
-
           {isLoading ? (
             <p className="text-center text-[var(--muted)] py-8">Loading videos…</p>
           ) : !filtered.length ? (
@@ -149,59 +149,78 @@ export default function CompetitorVideosPage() {
               No videos in this category match your filters.
             </p>
           ) : (
-            <>
-              {filtered.length > 1 && <CompetitorVideosCompare videos={filtered} />}
+            <div className="cs-card overflow-hidden">
+              <TrackingToolbar
+                title={`${filtered.length} video${filtered.length === 1 ? '' : 's'}`}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                filters={filters}
+                onFiltersChange={setFilters}
+                showComments
+              />
 
-              <div>
-                <h3 className="text-sm font-semibold text-[var(--foreground)] mb-2">
-                  {filtered.length === 1 ? 'Video' : 'Focus on one video'}
-                </h3>
-                <ItemTabs
-                  items={filtered.map((v) => ({
-                    id: v.id,
-                    label: v.title.length > 28 ? v.title.slice(0, 28) + '…' : v.title,
-                    thumbnailUrl: v.thumbnail_url,
-                  }))}
-                  selectedId={selected?.id ?? null}
-                  onSelect={setSelectedId}
-                />
-              </div>
+              <div className="p-4 space-y-6">
+                {filtered.length > 1 && (
+                  <CompetitorVideosCompare videos={filtered} viewMode={viewMode} />
+                )}
 
-              {selected && (
-                <div className="cs-card p-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <VideoThumbnailLink
-                      videoId={selected.youtube_video_id}
-                      title={selected.title}
-                      thumbnailUrl={selected.thumbnail_url}
-                      subtitle={
-                        selected.channel_name
-                          ? `${selected.channel_name} · ${selected.published_at ? new Date(selected.published_at).toLocaleDateString() : ''}`
-                          : undefined
+                <div>
+                  <h3 className="text-xs font-medium text-[var(--muted)] mb-2">
+                    {filtered.length === 1 ? 'Video' : 'Focus on one video'}
+                  </h3>
+                  <ItemTabs
+                    items={filtered.map((v) => ({
+                      id: v.id,
+                      label: v.title.length > 28 ? v.title.slice(0, 28) + '…' : v.title,
+                      thumbnailUrl: v.thumbnail_url,
+                    }))}
+                    selectedId={selected?.id ?? null}
+                    onSelect={setSelectedId}
+                  />
+                </div>
+
+                {selected && (
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--elevated)] p-4">
+                    <div
+                      className={
+                        viewMode === 'grid'
+                          ? 'grid grid-cols-1 lg:grid-cols-2 gap-4'
+                          : 'flex flex-col gap-4'
                       }
-                      views={selected.view_count}
-                      likes={selected.like_count}
-                      comments={selected.comment_count}
-                      layout="card"
-                    />
-                    <div className="space-y-4">
-                      {selected.channel_name && (
-                        <p className="text-sm text-[var(--muted)]">{selected.channel_name}</p>
-                      )}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <MetricCard title="Views" value={selected.view_count || 0} format="views" />
-                        <MetricCard title="Likes" value={selected.like_count || 0} format="number" />
-                        <MetricCard
-                          title="Comments"
-                          value={selected.comment_count || 0}
-                          format="number"
-                        />
+                    >
+                      <VideoThumbnailLink
+                        videoId={selected.youtube_video_id}
+                        title={selected.title}
+                        thumbnailUrl={selected.thumbnail_url}
+                        subtitle={
+                          selected.channel_name
+                            ? `${selected.channel_name} · ${selected.published_at ? new Date(selected.published_at).toLocaleDateString() : ''}`
+                            : undefined
+                        }
+                        views={selected.view_count}
+                        likes={selected.like_count}
+                        comments={selected.comment_count}
+                        layout={viewMode === 'grid' ? 'card' : 'row'}
+                      />
+                      <div className="space-y-3">
+                        {selected.channel_name && (
+                          <p className="text-sm text-[var(--muted)]">{selected.channel_name}</p>
+                        )}
+                        <div className="grid grid-cols-3 gap-2">
+                          <MetricCard title="Views" value={selected.view_count || 0} format="views" />
+                          <MetricCard title="Likes" value={selected.like_count || 0} format="number" />
+                          <MetricCard
+                            title="Comments"
+                            value={selected.comment_count || 0}
+                            format="number"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </TrackingLayout>
