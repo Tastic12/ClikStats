@@ -71,44 +71,53 @@ export function getLatestVideo(videos: Video[] | undefined) {
   )[0]
 }
 
-/** Build chart series when historical video_metrics are sparse */
+const MS_NEAR_ANCHOR = 60_000
+
+function isNearAnchor(recordedAt: string, anchor: Date): boolean {
+  return Math.abs(new Date(recordedAt).getTime() - anchor.getTime()) < MS_NEAR_ANCHOR
+}
+
+/** Chart timeline from video upload through today, with stored snapshots in between */
 export function buildVideoChartMetrics(
   video: Video,
   historical?: VideoMetric[]
 ): VideoMetric[] {
-  if (historical && historical.length >= 2) {
-    return [...historical].sort(
-      (a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
-    )
+  const nowAt = new Date()
+  let publishAt = new Date(video.published_at || nowAt.toISOString())
+  if (publishAt.getTime() > nowAt.getTime()) {
+    publishAt = new Date(nowAt.getTime() - 7 * 24 * 60 * 60 * 1000)
+  }
+  if (publishAt.getTime() >= nowAt.getTime()) {
+    publishAt = new Date(nowAt.getTime() - 24 * 60 * 60 * 1000)
   }
 
-  const endAt = new Date()
-  let startAt = new Date(video.published_at || endAt.toISOString())
-  if (startAt.getTime() > endAt.getTime()) {
-    startAt = new Date(endAt.getTime() - 7 * 24 * 60 * 60 * 1000)
-  }
-  if (startAt.getTime() === endAt.getTime()) {
-    startAt = new Date(endAt.getTime() - 24 * 60 * 60 * 1000)
+  const sorted = [...(historical ?? [])].sort(
+    (a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
+  )
+
+  const middle = sorted.filter(
+    (m) => !isNearAnchor(m.recorded_at, publishAt) && !isNearAnchor(m.recorded_at, nowAt)
+  )
+
+  const publishAnchor: VideoMetric = {
+    id: 'anchor-publish',
+    video_id: video.id,
+    view_count: 0,
+    like_count: 0,
+    comment_count: 0,
+    recorded_at: publishAt.toISOString(),
   }
 
-  return [
-    {
-      id: 'snap-start',
-      video_id: video.id,
-      view_count: Math.max(0, Math.floor((video.view_count || 0) * 0.85)),
-      like_count: Math.max(0, Math.floor((video.like_count || 0) * 0.85)),
-      comment_count: Math.max(0, Math.floor((video.comment_count || 0) * 0.85)),
-      recorded_at: startAt.toISOString(),
-    },
-    {
-      id: 'snap-now',
-      video_id: video.id,
-      view_count: video.view_count || 0,
-      like_count: video.like_count || 0,
-      comment_count: video.comment_count || 0,
-      recorded_at: endAt.toISOString(),
-    },
-  ]
+  const nowAnchor: VideoMetric = {
+    id: 'anchor-now',
+    video_id: video.id,
+    view_count: video.view_count || 0,
+    like_count: video.like_count || 0,
+    comment_count: video.comment_count || 0,
+    recorded_at: nowAt.toISOString(),
+  }
+
+  return [publishAnchor, ...middle, nowAnchor]
 }
 
 // Hook for fetching user's channels

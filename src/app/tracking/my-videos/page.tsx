@@ -65,7 +65,7 @@ export default function MyVideosPage() {
   }
 
   const chartMetrics = selectedVideo && buildVideoChartMetrics(selectedVideo, videoMetrics)
-  const hasHistory = (videoMetrics?.length ?? 0) >= 2
+  const trackedSnapshots = videoMetrics?.length ?? 0
 
   if (!user) {
     return (
@@ -186,11 +186,12 @@ export default function MyVideosPage() {
                     <h3 className="text-lg font-semibold text-[var(--foreground)] mb-2">
                       Performance over time
                     </h3>
-                    {!hasHistory && (
-                      <p className="text-xs text-[var(--muted)] px-0 py-2 mb-4">
-                        Snapshot from publish to now. Daily syncs will build full history.
-                      </p>
-                    )}
+                    <p className="text-xs text-[var(--muted)] px-0 py-2 mb-4">
+                      Timeline runs from upload to today.
+                      {trackedSnapshots > 0
+                        ? ' Dots between those dates are saved snapshots from ClikStats.'
+                        : ' Daily metric syncs add snapshot dots along this line.'}
+                    </p>
                     {metricsLoading ? (
                       <p className="text-[var(--muted)] py-12 text-center">Loading charts…</p>
                     ) : chartMetrics ? (
