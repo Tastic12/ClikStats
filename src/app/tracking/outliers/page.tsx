@@ -10,6 +10,7 @@ import {
   useVideos,
   recomputeOutlierScores,
 } from '../../../../lib/hooks'
+import { useShortsPreference } from '../../../../lib/preferences'
 import { DashboardShell } from '../../../components/DashboardShell'
 import { TrackingLayout } from '../../../components/TrackingLayout'
 import { VideoThumbnailLink } from '../../../components/VideoThumbnailLink'
@@ -49,6 +50,7 @@ export default function OutliersPage() {
 
   const { channel, isLoading: channelLoading } = useOwnedChannel()
   const { videos, isLoading: videosLoading, mutate: mutateVideos } = useVideos(channel?.id)
+  const { hideShorts } = useShortsPreference()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user: u } }) => {
@@ -62,12 +64,14 @@ export default function OutliersPage() {
     return list
       .filter((v) => v.outlier_score != null && v.outlier_score >= minScore)
       .filter((v) => {
-        if (kind === 'all') return true
+        // The per-page filter picks the explicit kind…
         if (kind === 'short') return v.is_short === true
-        return v.is_short !== true
+        if (kind === 'long') return v.is_short !== true
+        // …and 'all' defers to the global Hide Shorts preference.
+        return hideShorts ? v.is_short !== true : true
       })
       .sort((a, b) => (b.outlier_score ?? 0) - (a.outlier_score ?? 0))
-  }, [videos, kind, minScore])
+  }, [videos, kind, minScore, hideShorts])
 
   const totalScored = scoredCount(videos)
   const best = topScore(videos)

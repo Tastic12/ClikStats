@@ -12,6 +12,7 @@ import {
   buildVideoChartMetrics,
   syncChannelVideos,
 } from '../../../../lib/hooks'
+import { useShortsPreference } from '../../../../lib/preferences'
 import { MetricCard } from '../../../components/Charts'
 import { VideoMetricsToggleChart } from '../../../components/VideoMetricsToggleChart'
 import { DashboardShell } from '../../../components/DashboardShell'
@@ -29,6 +30,7 @@ export default function MyVideosPage() {
   const { channel, isLoading: channelLoading, mutate: mutateChannel } = useOwnedChannel()
   const { videos, isLoading: videosLoading, mutate: mutateVideos } = useVideos(channel?.id)
   const { metrics: videoMetrics, isLoading: metricsLoading } = useVideoMetrics(selectedVideo?.id)
+  const { hideShorts } = useShortsPreference()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user: u } }) => {
@@ -37,13 +39,21 @@ export default function MyVideosPage() {
     })
   }, [router])
 
-  useEffect(() => {
-    if (videos?.length && !selectedVideo) setSelectedVideo(videos[0])
-  }, [videos, selectedVideo])
+  const filteredVideos = videos
+    ?.filter((v) => !hideShorts || v.is_short !== true)
+    .filter((v) => v.title.toLowerCase().includes(searchTerm.toLowerCase()))
 
-  const filteredVideos = videos?.filter((v) =>
-    v.title.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Reset / pick a sensible selected video when the visible set changes
+  // (initial load, search, toggling Hide Shorts, etc.).
+  useEffect(() => {
+    if (!filteredVideos?.length) {
+      if (selectedVideo) setSelectedVideo(null)
+      return
+    }
+    if (!selectedVideo || !filteredVideos.find((v) => v.id === selectedVideo.id)) {
+      setSelectedVideo(filteredVideos[0])
+    }
+  }, [filteredVideos, selectedVideo])
 
   const storedCount = videos?.length ?? 0
   const youtubeCount = channel?.video_count ?? 0

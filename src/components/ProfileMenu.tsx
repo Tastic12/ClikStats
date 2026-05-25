@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useUserProfile } from '../../lib/hooks'
+import { useShortsPreference } from '../../lib/preferences'
 
 type ProfileMenuProps = {
   email?: string
@@ -114,8 +115,51 @@ export function ProfileMenu({ email }: ProfileMenuProps) {
               {profile?.display_name ? 'Edit profile name' : 'Set profile name'}
             </button>
           )}
+
+          <div className="border-t border-[var(--border)] mt-1">
+            <PreferencesSection />
+          </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function PreferencesSection() {
+  const { hideShorts, setHideShorts, mounted } = useShortsPreference()
+
+  return (
+    <div className="px-4 py-3">
+      <p className="text-[10px] uppercase tracking-wide text-[var(--muted-2)] mb-2">
+        Preferences
+      </p>
+      <button
+        type="button"
+        onClick={() => mounted && setHideShorts(!hideShorts)}
+        disabled={!mounted}
+        className="flex w-full items-center justify-between gap-3 disabled:opacity-50"
+      >
+        <span className="text-left">
+          <span className="block text-sm font-medium text-[var(--foreground)]">
+            Hide Shorts
+          </span>
+          <span className="block text-[11px] text-[var(--muted)]">
+            Filter out videos under 60 seconds across the app.
+          </span>
+        </span>
+        <span
+          aria-hidden
+          className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${
+            hideShorts ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+              hideShorts ? 'translate-x-4' : 'translate-x-0.5'
+            }`}
+          />
+        </span>
+      </button>
     </div>
   )
 }

@@ -13,6 +13,7 @@ import {
   initCompetitorChannel,
   refreshCompetitorChannels,
 } from '../../../../../lib/hooks'
+import { useShortsPreference } from '../../../../../lib/preferences'
 import { DashboardShell } from '../../../../components/DashboardShell'
 import { TrackingLayout } from '../../../../components/TrackingLayout'
 import { CategoryTabs, ALL_CATEGORIES_ID } from '../../../../components/CategoryTabs'
@@ -44,6 +45,7 @@ export default function CompetitorChannelsPage() {
 
   const { channels, isLoading, mutate } = useCompetitorChannels()
   const { groups, createGroup } = useCompetitorChannelGroups()
+  const { hideShorts } = useShortsPreference()
 
   const inCategory = useMemo(() => {
     const list = channels || []
@@ -302,11 +304,14 @@ export default function CompetitorChannelsPage() {
                               comments: v.comment_count,
                               outlierScore: v.outlier_score,
                             })
-                            const topByViews = [...channelVideos]
+                            const visible = hideShorts
+                              ? channelVideos.filter((v) => v.is_short !== true)
+                              : channelVideos
+                            const topByViews = [...visible]
                               .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
                               .slice(0, 5)
                               .map(mapVideo)
-                            const topByOutlier = [...channelVideos]
+                            const topByOutlier = [...visible]
                               .filter((v) => v.outlier_score != null)
                               .sort(
                                 (a, b) =>

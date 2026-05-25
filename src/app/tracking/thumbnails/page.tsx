@@ -9,6 +9,7 @@ import {
   embedThumbnailBatch,
   type ThumbnailSearchResult,
 } from '../../../../lib/hooks'
+import { useShortsPreference } from '../../../../lib/preferences'
 import { DashboardShell } from '../../../components/DashboardShell'
 import { TrackingLayout } from '../../../components/TrackingLayout'
 import { youtubeWatchUrl } from '@/lib/youtube'
@@ -25,6 +26,7 @@ const EXAMPLE_QUERIES = [
 
 export default function ThumbnailSearchPage() {
   const router = useRouter()
+  const { hideShorts } = useShortsPreference()
   const [user, setUser] = useState<User | null>(null)
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
@@ -50,7 +52,9 @@ export default function ThumbnailSearchPage() {
     setSearchError('')
     setLastQuery(q)
     try {
-      const r = await searchThumbnails(q, 24)
+      // Ask for more matches than we'll display so client-side Shorts
+      // filtering doesn't leave the grid feeling sparse.
+      const r = await searchThumbnails(q, hideShorts ? 48 : 24)
       setResults(r)
     } catch (err) {
       setSearchError(err instanceof Error ? err.message : 'Search failed.')
@@ -213,20 +217,37 @@ export default function ThumbnailSearchPage() {
 
           {/* Results */}
           <section>
-            {lastQuery && !searching && (
-              <p className="text-xs text-[var(--muted)] mb-3">
-                {results.length > 0
-                  ? `${results.length} matches for "${lastQuery}"`
-                  : `No matches for "${lastQuery}" — you may need to embed more thumbnails first.`}
-              </p>
-            )}
-            {results.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {results.map((r) => (
-                  <ThumbnailSearchCard key={r.youtube_video_id} result={r} />
-                ))}
-              </div>
-            )}
+            {(() => {
+              const visibleResults = hideShorts
+                ? results.filter((r) => r.is_short !== true)
+                : results
+              const hiddenCount = results.length - visibleResults.length
+
+              return (
+                <>
+                  {lastQuery && !searching && (
+                    <p className="text-xs text-[var(--muted)] mb-3">
+                      {visibleResults.length > 0
+                        ? `${visibleResults.length} match${visibleResults.length === 1 ? '' : 'es'} for "${lastQuery}"`
+                        : `No matches for "${lastQuery}" — you may need to embed more thumbnails first.`}
+                      {hiddenCount > 0 && (
+                        <span className="text-[var(--muted-2)]">
+                          {' '}
+                          · {hiddenCount} Short{hiddenCount === 1 ? '' : 's'} hidden by your preferences.
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  {visibleResults.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {visibleResults.map((r) => (
+                        <ThumbnailSearchCard key={r.youtube_video_id} result={r} />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )
+            })()}
           </section>
         </div>
       </TrackingLayout>
