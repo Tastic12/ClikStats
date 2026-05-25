@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
+import { mutate as globalMutate } from 'swr'
 import { supabase } from '../../../../../lib/supabase'
 import {
   useCompetitorChannels,
@@ -10,6 +11,7 @@ import {
   useCompetitorChannelVideos,
   useCompetitorChannelVideosBatch,
   initCompetitorChannel,
+  refreshCompetitorChannels,
 } from '../../../../../lib/hooks'
 import { DashboardShell } from '../../../../components/DashboardShell'
 import { TrackingLayout } from '../../../../components/TrackingLayout'
@@ -37,6 +39,8 @@ export default function CompetitorChannelsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [categoryId, setCategoryId] = useState<string | null>(ALL_CATEGORIES_ID)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshMsg, setRefreshMsg] = useState('')
 
   const { channels, isLoading, mutate } = useCompetitorChannels()
   const { groups, createGroup } = useCompetitorChannelGroups()
@@ -94,6 +98,35 @@ export default function CompetitorChannelsPage() {
     setCategoryId(g.id)
   }
 
+  const handleRefreshAll = async () => {
+    setRefreshing(true)
+    setRefreshMsg('')
+    try {
+      const result = await refreshCompetitorChannels()
+      await mutate()
+      // Invalidate every cached competitor-channel-videos query so the
+      // refreshed top-5 + outlier badges show up immediately.
+      await globalMutate(
+        (key) =>
+          Array.isArray(key) &&
+          typeof key[0] === 'string' &&
+          key[0].startsWith('competitor-channel-videos'),
+        undefined,
+        { revalidate: true }
+      )
+      const failed = result.results.filter((r) => r.status === 'error').length
+      setRefreshMsg(
+        failed > 0
+          ? `Refreshed ${result.refreshed} of ${result.total} channels (${failed} failed).`
+          : `Refreshed all ${result.refreshed} channels with fresh data and outlier scores.`
+      )
+    } catch (err) {
+      setRefreshMsg(err instanceof Error ? err.message : 'Refresh failed.')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   const activeCategoryName =
     categoryId === ALL_CATEGORIES_ID
       ? 'All categories'
@@ -127,9 +160,20 @@ export default function CompetitorChannelsPage() {
           />
 
           <section className="pb-8 border-b border-[var(--border)]">
-            <h2 className="text-sm font-semibold text-[var(--foreground)] mb-1">
-              Add channel to {activeCategoryName}
-            </h2>
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+              <h2 className="text-sm font-semibold text-[var(--foreground)]">
+                Add channel to {activeCategoryName}
+              </h2>
+              <button
+                type="button"
+                onClick={handleRefreshAll}
+                disabled={refreshing || !channels?.length}
+                className="text-xs font-medium text-[var(--accent)] hover:underline disabled:opacity-50"
+                title="Re-fetch recent uploads for every competitor and recompute outlier scores. Needed once for competitors added before the outlier feature shipped."
+              >
+                {refreshing ? 'Refreshing…' : 'Refresh all competitors'}
+              </button>
+            </div>
             <p className="text-xs text-[var(--muted)] mb-3">
               Group channels by niche (news, football, makeup, etc.) using categories above.
             </p>
@@ -147,6 +191,9 @@ export default function CompetitorChannelsPage() {
               </button>
             </form>
             {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
+            {refreshMsg && (
+              <p className="mt-2 text-xs text-[var(--muted-2)]">{refreshMsg}</p>
+            )}
           </section>
 
           {isLoading || batchLoading ? (

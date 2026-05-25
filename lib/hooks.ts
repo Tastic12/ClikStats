@@ -528,6 +528,63 @@ export function initCompetitorChannel(channelUrl: string, groupId?: string | nul
   return postAuthedApi('/api/competitors/channels/init', body)
 }
 
+export type ThumbnailSearchResult = {
+  youtube_video_id: string
+  thumbnail_url: string
+  similarity: number
+  title: string | null
+  view_count: number | null
+  published_at: string | null
+  outlier_score: number | null
+  is_short: boolean | null
+  source: 'own' | 'competitor' | 'unknown'
+}
+
+/**
+ * Search indexed thumbnails by text query. Returns up to `matchCount`
+ * results sorted by descending cosine similarity to the query embedding.
+ */
+export async function searchThumbnails(
+  query: string,
+  matchCount = 24
+): Promise<ThumbnailSearchResult[]> {
+  const result = (await postAuthedApi('/api/thumbnails/search', {
+    query,
+    match_count: String(matchCount),
+  })) as { results: ThumbnailSearchResult[] }
+  return result.results || []
+}
+
+/**
+ * Embed the next batch of un-indexed thumbnails. Returns how many were
+ * processed plus how many remain so the UI can loop until done.
+ */
+export async function embedThumbnailBatch(): Promise<{
+  processed: number
+  remaining: number
+}> {
+  const result = (await postAuthedApi('/api/thumbnails/embed-batch', {})) as {
+    processed: number
+    remaining: number
+  }
+  return result
+}
+
+/**
+ * Re-fetch recent uploads + recompute outlier scores for either every
+ * tracked competitor (no arg) or a single channel by ID.
+ */
+export async function refreshCompetitorChannels(channelId?: string) {
+  const body: Record<string, string> = {}
+  if (channelId) body.channel_id = channelId
+  const result = (await postAuthedApi('/api/competitors/channels/refresh', body)) as {
+    refreshed: number
+    total: number
+    results: Array<{ channelName: string; status: 'ok' | 'error'; error?: string }>
+  }
+  return result
+}
+
 export function initCompetitorVideo(videoUrl: string, groupId?: string | null) {
   const body: Record<string, string> = { video_url: videoUrl.trim() }
   if (groupId) body.group_id = groupId
