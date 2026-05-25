@@ -279,9 +279,6 @@ export default function CompetitorChannelsPage() {
                     </div>
 
                     <div>
-                      <h4 className="text-sm font-semibold text-[var(--foreground)] mb-3">
-                        Top 5 videos
-                      </h4>
                       {videosLoading ? (
                         <p className="text-[var(--muted)] text-sm">Loading videos…</p>
                       ) : channelVideos && channelVideos.length > 0 ? (
@@ -294,10 +291,8 @@ export default function CompetitorChannelsPage() {
                               }))}
                             />
                           </div>
-                          <VideoResultsLayout
-                            viewMode={viewMode}
-                            columnStack={viewMode === 'grid' && filtered.length === 1}
-                            videos={channelVideos.map((v) => ({
+                          {(() => {
+                            const mapVideo = (v: typeof channelVideos[number]) => ({
                               id: v.id,
                               videoId: v.video_id,
                               title: v.title,
@@ -306,9 +301,52 @@ export default function CompetitorChannelsPage() {
                               likes: v.like_count,
                               comments: v.comment_count,
                               outlierScore: v.outlier_score,
-                            }))}
-                            maxItems={5}
-                          />
+                            })
+                            const topByViews = [...channelVideos]
+                              .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+                              .slice(0, 5)
+                              .map(mapVideo)
+                            const topByOutlier = [...channelVideos]
+                              .filter((v) => v.outlier_score != null)
+                              .sort(
+                                (a, b) =>
+                                  (b.outlier_score || 0) - (a.outlier_score || 0)
+                              )
+                              .slice(0, 5)
+                              .map(mapVideo)
+                            return (
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div>
+                                  <h4 className="text-sm font-semibold text-[var(--foreground)] mb-3">
+                                    Top 5 by views
+                                  </h4>
+                                  <VideoResultsLayout
+                                    viewMode={viewMode}
+                                    videos={topByViews}
+                                    maxItems={5}
+                                  />
+                                </div>
+                                <div>
+                                  <h4 className="text-sm font-semibold text-[var(--foreground)] mb-3">
+                                    Top 5 outliers
+                                  </h4>
+                                  {topByOutlier.length > 0 ? (
+                                    <VideoResultsLayout
+                                      viewMode={viewMode}
+                                      videos={topByOutlier}
+                                      maxItems={5}
+                                    />
+                                  ) : (
+                                    <p className="text-xs text-[var(--muted)]">
+                                      No scored videos yet — try the
+                                      &ldquo;Refresh all competitors&rdquo; button so this
+                                      channel has a baseline to score against.
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })()}
                         </>
                       ) : (
                         <p className="text-sm text-[var(--muted)]">No videos loaded for this channel.</p>
