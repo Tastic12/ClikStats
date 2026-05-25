@@ -90,6 +90,25 @@ export async function embedImageFromUrl(url: string): Promise<number[]> {
 }
 
 /**
+ * Embed an image already in memory (e.g. an uploaded File buffer) into the
+ * same 512-d space. RawImage.read accepts a Blob, so we wrap the buffer.
+ */
+export async function embedImageFromBuffer(
+  buffer: ArrayBuffer | Uint8Array,
+  mimeType = 'image/jpeg'
+): Promise<number[]> {
+  const { processor, model } = await getVisionBundle()
+  const blob = new Blob([buffer as BlobPart], { type: mimeType })
+  const image = await RawImage.fromBlob(blob)
+  const inputs = await processor(image)
+  const { image_embeds } = (await model(inputs)) as {
+    image_embeds: { tolist: () => number[][] }
+  }
+  const raw = image_embeds.tolist()[0]
+  return l2Normalize(raw)
+}
+
+/**
  * Serialize an embedding for pgvector. Postgres accepts the textual form
  * `[0.1,0.2,...]`. We pass it via RPC as TEXT and cast to vector(512) inside
  * the SQL function — Supabase's JS client serializes RPC args as JSON, which

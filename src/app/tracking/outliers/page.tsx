@@ -17,6 +17,13 @@ import { VideoThumbnailLink } from '../../../components/VideoThumbnailLink'
 import { ViewModeToggle, type ViewMode } from '../../../components/ViewModeToggle'
 import { OutlierBadge, formatOutlierScore } from '../../../components/OutlierBadge'
 
+/** Build a deep link into the thumbnails page that auto-runs Find-similar. */
+function similarLink(videoId: string, title: string | null | undefined) {
+  const params = new URLSearchParams({ similar: videoId })
+  if (title) params.set('title', title)
+  return `/tracking/thumbnails?${params.toString()}`
+}
+
 type KindFilter = 'all' | 'long' | 'short'
 
 const SCORE_THRESHOLDS: Array<{ value: number; label: string }> = [
@@ -236,34 +243,50 @@ export default function OutliersPage() {
                 {viewMode === 'grid' ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filtered.map((v, i) => (
-                      <VideoThumbnailLink
-                        key={v.id}
-                        videoId={v.video_id}
-                        title={v.title}
-                        thumbnailUrl={v.thumbnail_url}
-                        views={v.view_count}
-                        likes={v.like_count}
-                        comments={v.comment_count}
-                        rank={i + 1}
-                        outlierScore={v.outlier_score}
-                        layout="card"
-                      />
+                      <div key={v.id} className="flex flex-col">
+                        <VideoThumbnailLink
+                          videoId={v.video_id}
+                          title={v.title}
+                          thumbnailUrl={v.thumbnail_url}
+                          views={v.view_count}
+                          likes={v.like_count}
+                          comments={v.comment_count}
+                          rank={i + 1}
+                          outlierScore={v.outlier_score}
+                          layout="card"
+                        />
+                        <a
+                          href={similarLink(v.video_id, v.title)}
+                          className="mt-1.5 text-center text-[11px] font-medium text-[var(--muted)] hover:text-[var(--accent)] rounded px-2 py-1 hover:bg-[var(--elevated)] ring-1 ring-transparent hover:ring-[var(--border)] transition-colors"
+                        >
+                          Find similar thumbnails
+                        </a>
+                      </div>
                     ))}
                   </div>
                 ) : (
                   <div className="divide-y divide-[var(--border)]">
                     {filtered.map((v, i) => (
-                      <VideoThumbnailLink
-                        key={v.id}
-                        videoId={v.video_id}
-                        title={v.title}
-                        thumbnailUrl={v.thumbnail_url}
-                        views={v.view_count}
-                        likes={v.like_count}
-                        rank={i + 1}
-                        outlierScore={v.outlier_score}
-                        layout="row"
-                      />
+                      <div key={v.id} className="flex items-stretch">
+                        <div className="flex-1 min-w-0">
+                          <VideoThumbnailLink
+                            videoId={v.video_id}
+                            title={v.title}
+                            thumbnailUrl={v.thumbnail_url}
+                            views={v.view_count}
+                            likes={v.like_count}
+                            rank={i + 1}
+                            outlierScore={v.outlier_score}
+                            layout="row"
+                          />
+                        </div>
+                        <a
+                          href={similarLink(v.video_id, v.title)}
+                          className="self-center ml-2 mr-2 whitespace-nowrap text-[11px] font-medium text-[var(--muted)] hover:text-[var(--accent)] rounded px-2 py-1 hover:bg-[var(--elevated)] ring-1 ring-transparent hover:ring-[var(--border)] transition-colors"
+                        >
+                          Find similar
+                        </a>
+                      </div>
                     ))}
                   </div>
                 )}

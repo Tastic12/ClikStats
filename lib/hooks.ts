@@ -570,6 +570,58 @@ export async function embedThumbnailBatch(): Promise<{
   return result
 }
 
+/** Cheap SQL-only count of how many tracked thumbnails still need embedding. */
+export async function fetchPendingThumbnailCount(): Promise<number> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return 0
+  const response = await fetch('/api/thumbnails/pending-count', {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  })
+  if (!response.ok) return 0
+  const json = (await response.json()) as { count?: number }
+  return json.count ?? 0
+}
+
+/** Image-based variant of search: upload a JPG/PNG, get visually similar matches. */
+export async function searchThumbnailsByImage(
+  file: File,
+  matchCount = 24
+): Promise<ThumbnailSearchResult[]> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not authenticated')
+
+  const form = new FormData()
+  form.append('image', file)
+  form.append('match_count', String(matchCount))
+
+  const response = await fetch('/api/thumbnails/search-image', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    body: form,
+  })
+  const text = await response.text()
+  let json: { results?: ThumbnailSearchResult[]; error?: string }
+  try {
+    json = text ? JSON.parse(text) : {}
+  } catch {
+    throw new Error(`Server error (${response.status})`)
+  }
+  if (!response.ok) throw new Error(json.error || 'Image search failed')
+  return json.results || []
+}
+
+/** Find thumbnails similar to a video we've already indexed (by its YouTube ID). */
+export async function searchSimilarToVideo(
+  youtubeVideoId: string,
+  matchCount = 24
+): Promise<ThumbnailSearchResult[]> {
+  const result = (await postAuthedApi('/api/thumbnails/search-similar', {
+    youtube_video_id: youtubeVideoId,
+    match_count: String(matchCount),
+  })) as { results: ThumbnailSearchResult[] }
+  return result.results || []
+}
+
 /**
  * Re-fetch recent uploads + recompute outlier scores for either every
  * tracked competitor (no arg) or a single channel by ID.

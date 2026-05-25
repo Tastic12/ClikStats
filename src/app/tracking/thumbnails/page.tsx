@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../../../../lib/supabase'
 import {
   searchThumbnails,
+  searchThumbnailsByImage,
+  searchSimilarToVideo,
   embedThumbnailBatch,
   type ThumbnailSearchResult,
 } from '../../../../lib/hooks'
@@ -25,7 +27,25 @@ const EXAMPLE_QUERIES = [
 ]
 
 export default function ThumbnailSearchPage() {
+  // useSearchParams() forces this subtree to be client-rendered and Next 15
+  // requires it to live inside a Suspense boundary so the rest of the
+  // dashboard shell can still be prerendered.
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[var(--app-bg)]">
+          <p className="text-[var(--muted)]">Loading…</p>
+        </div>
+      }
+    >
+      <ThumbnailSearchPageInner />
+    </Suspense>
+  )
+}
+
+function ThumbnailSearchPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { hideShorts } = useShortsPreference()
   const [user, setUser] = useState<User | null>(null)
   const [query, setQuery] = useState('')
@@ -33,6 +53,9 @@ export default function ThumbnailSearchPage() {
   const [results, setResults] = useState<ThumbnailSearchResult[]>([])
   const [searchError, setSearchError] = useState('')
   const [lastQuery, setLastQuery] = useState('')
+  const [searchMode, setSearchMode] = useState<'text' | 'image' | 'similar'>('text')
+  const [searchContext, setSearchContext] = useState<string>('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Admin / indexing state
   const [indexing, setIndexing] = useState(false)
@@ -47,10 +70,25 @@ export default function ThumbnailSearchPage() {
     })
   }, [router])
 
+  // Deep-link from outlier cards (?similar=<videoId>&title=<title>): once
+  // we have a logged-in user, run a similar-search and then clean the URL.
+  useEffect(() => {
+    if (!user) return
+    const similarId = searchParams.get('similar')
+    if (!similarId) return
+    const title = searchParams.get('title')
+    runSimilarSearch(similarId, title)
+    router.replace('/tracking/thumbnails')
+    // We only want this to fire once per arrival from the outliers page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
+
   const runSearch = async (q: string) => {
     setSearching(true)
     setSearchError('')
     setLastQuery(q)
+    setSearchMode('text')
+    setSearchContext('')
     try {
       // Ask for more matches than we'll display so client-side Shorts
       // filtering doesn't leave the grid feeling sparse.
@@ -62,6 +100,50 @@ export default function ThumbnailSearchPage() {
     } finally {
       setSearching(false)
     }
+  }
+
+  const runImageSearch = async (file: File) => {
+    setSearching(true)
+    setSearchError('')
+    setLastQuery('')
+    setSearchMode('image')
+    setSearchContext(file.name)
+    try {
+      const r = await searchThumbnailsByImage(file, hideShorts ? 48 : 24)
+      setResults(r)
+    } catch (err) {
+      setSearchError(err instanceof Error ? err.message : 'Image search failed.')
+      setResults([])
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const runSimilarSearch = async (videoId: string, title: string | null) => {
+    setSearching(true)
+    setSearchError('')
+    setLastQuery('')
+    setSearchMode('similar')
+    setSearchContext(title || videoId)
+    try {
+      const r = await searchSimilarToVideo(videoId, hideShorts ? 48 : 24)
+      setResults(r)
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    } catch (err) {
+      setSearchError(err instanceof Error ? err.message : 'Similar search failed.')
+      setResults([])
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) runImageSearch(file)
+    // Reset so the same file can be re-uploaded
+    e.target.value = ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -153,6 +235,22 @@ export default function ThumbnailSearchPage() {
               >
                 {searching ? 'Searching…' : 'Search'}
               </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={searching}
+                className="cs-input px-3 py-2 text-sm whitespace-nowrap hover:bg-[var(--card)]"
+                title="Upload an image to find visually similar thumbnails"
+              >
+                Search by image
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImagePick}
+                className="hidden"
+              />
             </form>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <span className="text-[10px] uppercase tracking-wide text-[var(--muted-2)] mr-1">
@@ -223,13 +321,21 @@ export default function ThumbnailSearchPage() {
                 : results
               const hiddenCount = results.length - visibleResults.length
 
+              // Build a human label for what triggered the current results.
+              let contextLabel = ''
+              if (!searching && results.length > 0) {
+                if (searchMode === 'text' && lastQuery) contextLabel = `for "${lastQuery}"`
+                else if (searchMode === 'image') contextLabel = `similar to uploaded image${searchContext ? ` (${searchContext})` : ''}`
+                else if (searchMode === 'similar') contextLabel = `similar to "${searchContext}"`
+              }
+
               return (
                 <>
-                  {lastQuery && !searching && (
+                  {contextLabel && (
                     <p className="text-xs text-[var(--muted)] mb-3">
                       {visibleResults.length > 0
-                        ? `${visibleResults.length} match${visibleResults.length === 1 ? '' : 'es'} for "${lastQuery}"`
-                        : `No matches for "${lastQuery}" — you may need to embed more thumbnails first.`}
+                        ? `${visibleResults.length} match${visibleResults.length === 1 ? '' : 'es'} ${contextLabel}`
+                        : `No matches ${contextLabel} — you may need to embed more thumbnails first.`}
                       {hiddenCount > 0 && (
                         <span className="text-[var(--muted-2)]">
                           {' '}
@@ -241,7 +347,11 @@ export default function ThumbnailSearchPage() {
                   {visibleResults.length > 0 && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                       {visibleResults.map((r) => (
-                        <ThumbnailSearchCard key={r.youtube_video_id} result={r} />
+                        <ThumbnailSearchCard
+                          key={r.youtube_video_id}
+                          result={r}
+                          onFindSimilar={runSimilarSearch}
+                        />
                       ))}
                     </div>
                   )}
@@ -255,42 +365,62 @@ export default function ThumbnailSearchPage() {
   )
 }
 
-function ThumbnailSearchCard({ result }: { result: ThumbnailSearchResult }) {
+function ThumbnailSearchCard({
+  result,
+  onFindSimilar,
+}: {
+  result: ThumbnailSearchResult
+  onFindSimilar: (videoId: string, title: string | null) => void
+}) {
   const href = youtubeWatchUrl(result.youtube_video_id)
   const similarityPct = Math.round(result.similarity * 100)
 
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group overflow-hidden rounded-lg bg-[var(--elevated)]/50 hover:bg-[var(--elevated)] ring-1 ring-[var(--border)] hover:ring-[var(--accent)] transition-all block"
-    >
-      <div className="aspect-video bg-[var(--elevated)] relative">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={result.thumbnail_url} alt="" className="w-full h-full object-cover" />
-        <span className="absolute top-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
-          {similarityPct}%
-        </span>
-        {result.outlier_score != null && (
-          <div className="absolute top-1 right-1">
-            <OutlierBadge score={result.outlier_score} size="sm" />
-          </div>
-        )}
-        {result.source && result.source !== 'unknown' && (
-          <span
-            className={`absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] font-semibold text-white ${
-              result.source === 'own' ? 'bg-[var(--accent)]' : 'bg-zinc-700/90'
-            }`}
-          >
-            {result.source === 'own' ? 'You' : 'Competitor'}
+    <div className="group overflow-hidden rounded-lg bg-[var(--elevated)]/50 hover:bg-[var(--elevated)] ring-1 ring-[var(--border)] hover:ring-[var(--accent)] transition-all">
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block"
+      >
+        <div className="aspect-video bg-[var(--elevated)] relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={result.thumbnail_url} alt="" className="w-full h-full object-cover" />
+          <span className="absolute top-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
+            {similarityPct}%
           </span>
-        )}
+          {result.outlier_score != null && (
+            <div className="absolute top-1 right-1">
+              <OutlierBadge score={result.outlier_score} size="sm" />
+            </div>
+          )}
+          {result.source && result.source !== 'unknown' && (
+            <span
+              className={`absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] font-semibold text-white ${
+                result.source === 'own' ? 'bg-[var(--accent)]' : 'bg-zinc-700/90'
+              }`}
+            >
+              {result.source === 'own' ? 'You' : 'Competitor'}
+            </span>
+          )}
+        </div>
+        <div className="p-3">
+          <VideoSearchCardMeta result={result} />
+        </div>
+      </a>
+      <div className="px-3 pb-3 -mt-1">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault()
+            onFindSimilar(result.youtube_video_id, result.title ?? null)
+          }}
+          className="w-full text-[11px] font-medium text-[var(--muted)] hover:text-[var(--accent)] rounded px-2 py-1 hover:bg-[var(--card)] ring-1 ring-transparent hover:ring-[var(--border)] transition-colors"
+        >
+          Find similar
+        </button>
       </div>
-      <div className="p-3">
-        <VideoSearchCardMeta result={result} />
-      </div>
-    </a>
+    </div>
   )
 }
 

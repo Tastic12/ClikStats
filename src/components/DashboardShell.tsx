@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ProfileMenu } from './ProfileMenu'
+import { ThumbnailIndexBanner } from './ThumbnailIndexBanner'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -67,6 +68,7 @@ export function DashboardShell({ children, email, onSignOut }: DashboardShellPro
       </header>
 
       <main className="flex-1 w-full px-4 py-6 sm:px-6 lg:px-8 xl:px-10">{children}</main>
+      <ThumbnailIndexBanner />
     </div>
   )
 }
