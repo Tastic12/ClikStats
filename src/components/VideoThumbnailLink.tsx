@@ -2,6 +2,7 @@
 
 import { youtubeWatchUrl } from '@/lib/youtube'
 import { formatCount } from '@/lib/format'
+import { OutlierBadge } from './OutlierBadge'
 
 type VideoThumbnailLinkProps = {
   videoId: string
@@ -12,6 +13,7 @@ type VideoThumbnailLinkProps = {
   likes?: number
   comments?: number
   rank?: number
+  outlierScore?: number | null
   layout?: 'row' | 'card'
   size?: 'default' | 'compact'
   className?: string
@@ -26,6 +28,7 @@ export function VideoThumbnailLink({
   likes,
   comments,
   rank,
+  outlierScore,
   layout = 'row',
   size = 'default',
   className = '',
@@ -57,6 +60,11 @@ export function VideoThumbnailLink({
             >
               #{rank}
             </span>
+          )}
+          {outlierScore != null && (
+            <div className="absolute top-1 right-1">
+              <OutlierBadge score={outlierScore} size={compact ? 'sm' : 'md'} />
+            </div>
           )}
         </div>
         <div className={compact ? 'p-2' : 'p-3'}>
@@ -105,21 +113,22 @@ export function VideoThumbnailLink({
           {rank}
         </span>
       )}
-      {thumbnailUrl ? (
-        <img
-          src={thumbnailUrl}
-          alt=""
-          className={`object-cover rounded-md flex-shrink-0 bg-[var(--elevated)] ${
-            compact ? 'w-16 h-9' : 'w-28 h-16'
-          }`}
-        />
-      ) : (
-        <div
-          className={`rounded-md bg-[var(--elevated)] flex-shrink-0 ${
-            compact ? 'w-16 h-9' : 'w-28 h-16'
-          }`}
-        />
-      )}
+      <div className={`relative flex-shrink-0 ${compact ? 'w-16 h-9' : 'w-28 h-16'}`}>
+        {thumbnailUrl ? (
+          <img
+            src={thumbnailUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover rounded-md bg-[var(--elevated)]"
+          />
+        ) : (
+          <div className="absolute inset-0 rounded-md bg-[var(--elevated)]" />
+        )}
+        {outlierScore != null && (
+          <div className="absolute top-0.5 right-0.5">
+            <OutlierBadge score={outlierScore} size="sm" />
+          </div>
+        )}
+      </div>
       <div className="min-w-0 flex-1">
         <p
           className={`font-medium text-[var(--foreground)] group-hover:text-[var(--accent)] ${

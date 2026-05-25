@@ -79,6 +79,8 @@ export interface Video {
   view_count?: number
   like_count?: number
   comment_count?: number
+  outlier_score?: number | null
+  is_short?: boolean | null
   created_at: string
   updated_at: string
 }
@@ -135,6 +137,7 @@ export interface CompetitorChannelVideo {
   view_count?: number
   like_count?: number
   comment_count?: number
+  outlier_score?: number | null
   created_at: string
 }
 

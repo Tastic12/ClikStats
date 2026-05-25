@@ -59,6 +59,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to save videos' }, { status: 500 })
     }
 
+    const { error: scoreError } = await admin.rpc('recompute_outlier_scores', {
+      channel_uuid: channelRecord.id,
+    })
+    if (scoreError) {
+      console.error('recompute_outlier_scores failed:', scoreError)
+    }
+
     const ytChannel = await fetch(
       `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channelRecord.channel_id}&key=${youtubeApiKey}`
     ).then((r) => r.json())

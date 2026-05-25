@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 
 const trackingTabs = [
   { href: '/tracking/my-videos', label: 'My videos' },
+  { href: '/tracking/outliers', label: 'Outliers' },
   { href: '/tracking/competitors/channels', label: 'Competitor channels' },
   { href: '/tracking/competitors/videos', label: 'Competitor videos' },
 ]

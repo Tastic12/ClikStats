@@ -182,6 +182,16 @@ serve(async (req) => {
       }
     }
 
+    // Refresh outlier scores per channel now that view counts may have moved.
+    for (const channel of channels || []) {
+      const { error: scoreError } = await supabaseClient.rpc('recompute_outlier_scores', {
+        channel_uuid: channel.id,
+      })
+      if (scoreError) {
+        console.error(`recompute_outlier_scores failed for ${channel.id}:`, scoreError)
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

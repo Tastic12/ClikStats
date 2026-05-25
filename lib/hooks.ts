@@ -176,6 +176,17 @@ export function useChannelMetrics(channelId?: string) {
   }
 }
 
+/**
+ * Trigger a server-side recompute of outlier scores for the user's channel.
+ * Cheap: pure SQL, no YouTube API calls.
+ */
+export async function recomputeOutlierScores(channelId: string) {
+  const { error } = await supabase.rpc('recompute_outlier_scores', {
+    channel_uuid: channelId,
+  })
+  if (error) throw error
+}
+
 // Hook for fetching user's videos
 export function useVideos(channelId?: string) {
   const { data, error, mutate } = useSWR<Video[]>(
