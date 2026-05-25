@@ -14,12 +14,14 @@ type Tier = {
 }
 
 // Ordered high → low so the first match wins.
+// Solid fills + dark ring + drop shadow so the badge stays legible on any
+// thumbnail background, not just on dark UI surfaces.
 const TIERS: Tier[] = [
-  { min: 10, label: 'Viral',      className: 'bg-red-500/15    text-red-400    ring-red-500/30' },
-  { min: 5,  label: 'Breakout',   className: 'bg-orange-500/15 text-orange-300 ring-orange-500/30' },
-  { min: 3,  label: 'Outlier',    className: 'bg-yellow-400/15 text-yellow-300 ring-yellow-400/30' },
-  { min: 1.5,label: 'Above avg',  className: 'bg-blue-500/15   text-blue-300   ring-blue-500/30' },
-  { min: 0,  label: 'Average',    className: 'bg-zinc-500/15   text-zinc-300   ring-zinc-500/30' },
+  { min: 10, label: 'Viral',      className: 'bg-red-600    text-white     ring-black/50' },
+  { min: 5,  label: 'Breakout',   className: 'bg-orange-500 text-white     ring-black/50' },
+  { min: 3,  label: 'Outlier',    className: 'bg-amber-400  text-amber-950 ring-black/50' },
+  { min: 1.5,label: 'Above avg',  className: 'bg-blue-600   text-white     ring-black/50' },
+  { min: 0,  label: 'Average',    className: 'bg-zinc-800   text-zinc-100  ring-black/50' },
 ]
 
 function tierFor(score: number): Tier {
@@ -38,13 +40,13 @@ export function OutlierBadge({ score, size = 'sm', className = '' }: OutlierBadg
   const tier = tierFor(score)
   const sizing =
     size === 'md'
-      ? 'text-xs px-2 py-0.5'
-      : 'text-[10px] px-1.5 py-[1px]'
+      ? 'text-sm px-2 py-0.5'
+      : 'text-[11px] px-1.5 py-0.5'
 
   return (
     <span
       title={`Outlier score: ${formatOutlierScore(score)} (${tier.label}) — multiplier vs. this channel's median recent uploads`}
-      className={`inline-flex items-center gap-1 rounded font-semibold ring-1 ${tier.className} ${sizing} ${className}`}
+      className={`inline-flex items-center gap-1 rounded-md font-bold tracking-tight shadow-md ring-1 ${tier.className} ${sizing} ${className}`}
     >
       {formatOutlierScore(score)}
     </span>

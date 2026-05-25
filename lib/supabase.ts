@@ -134,10 +134,12 @@ export interface CompetitorChannelVideo {
   title: string
   thumbnail_url?: string
   published_at: string
+  duration?: string | null
   view_count?: number
   like_count?: number
   comment_count?: number
   outlier_score?: number | null
+  is_short?: boolean | null
   created_at: string
 }
 

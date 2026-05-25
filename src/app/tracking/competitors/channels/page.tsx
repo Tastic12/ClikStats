@@ -258,6 +258,7 @@ export default function CompetitorChannelsPage() {
                               views: v.view_count,
                               likes: v.like_count,
                               comments: v.comment_count,
+                              outlierScore: v.outlier_score,
                             }))}
                             maxItems={5}
                           />

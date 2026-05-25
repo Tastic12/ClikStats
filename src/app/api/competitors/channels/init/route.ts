@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { fetchChannelTopVideos, fetchYouTubeChannel } from '../../../../../../lib/youtube-channel'
+import { fetchChannelVideos, fetchYouTubeChannel } from '../../../../../../lib/youtube-channel'
+
+// How many recent uploads to fetch per competitor. Big enough to give a stable
+// median, small enough to keep YouTube API quota usage low (~3 units).
+const COMPETITOR_BASELINE_WINDOW = 30
 
 export async function POST(request: Request) {
   try {
@@ -68,21 +72,39 @@ export async function POST(request: Request) {
       .delete()
       .eq('competitor_channel_id', record.id)
 
-    const topVideos = await fetchChannelTopVideos(youtubeChannelId, youtubeApiKey, 5)
-    if (topVideos.length) {
+    // Fetch recent uploads so we have a real distribution to baseline against.
+    // The "top videos" display now simply picks the top N by view_count from
+    // these recent uploads — far more actionable than all-time hits from years
+    // ago, and ~30x cheaper on YouTube API quota than search.list.
+    const recentVideos = await fetchChannelVideos(
+      youtubeChannelId,
+      youtubeApiKey,
+      COMPETITOR_BASELINE_WINDOW
+    )
+
+    if (recentVideos.length) {
       await admin.from('competitor_channel_videos').insert(
-        topVideos.map((v) => ({
+        recentVideos.map((v) => ({
           user_id: user.id,
           competitor_channel_id: record.id,
           video_id: v.video_id,
           title: v.title,
           thumbnail_url: v.thumbnail_url,
           published_at: v.published_at,
+          duration: v.duration,
           view_count: v.view_count,
           like_count: v.like_count,
           comment_count: v.comment_count,
         }))
       )
+
+      const { error: scoreError } = await admin.rpc(
+        'recompute_competitor_outlier_scores',
+        { channel_uuid: record.id }
+      )
+      if (scoreError) {
+        console.error('recompute_competitor_outlier_scores failed:', scoreError)
+      }
     }
 
     return NextResponse.json({ success: true, channel: record })

@@ -12,6 +12,7 @@ export type VideoResultItem = {
   views?: number
   likes?: number
   comments?: number
+  outlierScore?: number | null
 }
 
 type VideoResultsLayoutProps = {
@@ -50,6 +51,7 @@ export function VideoResultsLayout({
             likes={v.likes}
             comments={v.comments}
             rank={i + 1}
+            outlierScore={v.outlierScore}
             layout="row"
             size={compact ? 'compact' : 'default'}
           />
@@ -72,6 +74,7 @@ export function VideoResultsLayout({
             likes={v.likes}
             comments={v.comments}
             rank={i + 1}
+            outlierScore={v.outlierScore}
             layout="card"
             size="default"
             className="w-full"
@@ -98,6 +101,7 @@ export function VideoResultsLayout({
           likes={v.likes}
           comments={v.comments}
           rank={i + 1}
+          outlierScore={v.outlierScore}
           layout="card"
           size={compact ? 'compact' : 'default'}
         />
