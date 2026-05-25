@@ -114,7 +114,7 @@ export default function MyVideosPage() {
                   type="button"
                   onClick={handleSyncVideos}
                   disabled={syncing}
-                  className="text-xs font-medium text-[var(--accent)] hover:underline disabled:opacity-50"
+                  className="inline-flex items-center min-h-11 px-3 py-2 text-xs font-medium text-[var(--accent)] hover:bg-[var(--elevated)] rounded-md disabled:opacity-50"
                 >
                   {syncing ? 'Syncing…' : 'Sync all from YouTube'}
                 </button>

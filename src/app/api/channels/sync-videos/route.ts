@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchChannelVideos } from '../../../../../lib/youtube-channel'
+import { checkRateLimit } from '../../../../../lib/rate-limit'
 
 export async function POST(request: Request) {
   try {
@@ -25,6 +26,14 @@ export async function POST(request: Request) {
     const { data: { user }, error: authError } = await admin.auth.getUser(token)
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const rl = await checkRateLimit(user.id, 'sync-videos')
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: rl.message },
+        { status: rl.status, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+      )
     }
 
     const { data: channelRecord, error: channelError } = await admin

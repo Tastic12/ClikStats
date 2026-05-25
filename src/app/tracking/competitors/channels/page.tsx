@@ -170,7 +170,7 @@ export default function CompetitorChannelsPage() {
                 type="button"
                 onClick={handleRefreshAll}
                 disabled={refreshing || !channels?.length}
-                className="text-xs font-medium text-[var(--accent)] hover:underline disabled:opacity-50"
+                className="inline-flex items-center min-h-11 px-3 py-2 text-xs font-medium text-[var(--accent)] hover:bg-[var(--elevated)] rounded-md disabled:opacity-50"
                 title="Re-fetch recent uploads for every competitor and recompute outlier scores. Needed once for competitors added before the outlier feature shipped."
               >
                 {refreshing ? 'Refreshing…' : 'Refresh all competitors'}

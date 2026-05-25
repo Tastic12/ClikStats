@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchChannelVideos, fetchYouTubeChannel } from '../../../../../../lib/youtube-channel'
+import { checkRateLimit } from '../../../../../../lib/rate-limit'
 
 // Matches the window used by the init route so refreshed channels score
 // against the same kind of baseline.
@@ -40,6 +41,14 @@ export async function POST(request: Request) {
     const { data: { user }, error: authError } = await admin.auth.getUser(token)
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const rl = await checkRateLimit(user.id, 'competitors-refresh')
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: rl.message },
+        { status: rl.status, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+      )
     }
 
     // Optional ?channel_id=... filter for refreshing a single competitor.

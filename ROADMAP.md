@@ -25,35 +25,38 @@ ships. Add new items at the bottom of the relevant section.
   manual clicks. ~3-5 YouTube API units/day cost.
 - **Effort:** ~5 min, one-time setup
 
-### [ ] Rate limiting on YouTube-API endpoints
-- Add `@upstash/ratelimit` keyed on `auth.uid()`
-- Apply to:
-  - `/api/channels/sync-videos` → 5/min, 30/day per user
-  - `/api/competitors/channels/refresh` → 3/min, 20/day per user
-  - `/api/competitors/channels/init` → 10/min, 50/day per user
-- Return `429 Too Many Requests` with a friendly retry-after message
-- **Why:** without this, one bad actor can burn the entire 10K daily YouTube
-  quota in ~3 minutes, taking the app offline for everyone until midnight PT.
-- **Effort:** ~30 min. Upstash free tier covers our volume at $0/mo.
-- **Trigger:** must do before letting anyone else onto the site.
+### [ ] Rate limiting — finish wiring up Upstash
+- Code is shipped (`lib/rate-limit.ts` + wired into the three protected
+  routes). It's a no-op until Upstash env vars are set, so currently
+  inactive in production.
+- **What's left:** the user needs to set two env vars (locally in
+  `.env.local` and on Vercel → Settings → Environment Variables):
+  - `UPSTASH_REDIS_REST_URL`
+  - `UPSTASH_REDIS_REST_TOKEN`
+- **How to get them:** sign up free at https://upstash.com → create a
+  Redis database (Global / Free tier) → copy the REST URL + token from
+  the database details page.
+- **Current limits** (all per-user, sliding window):
+  - `sync-videos`: 5/min, 30/day
+  - `competitors-refresh`: 3/min, 20/day
+  - `competitors-init`: 10/min, 50/day
 
 ---
 
 ## Up next — medium value
 
-### [ ] Native mobile UX pass
-- Hamburger menu for `DashboardShell` nav below 768px width
-- Replace hover-reveal patterns (Watch on YouTube ↗, Find similar text buttons)
-  with always-visible variants
-- Increase all tap targets to ≥44pt per Apple HIG
-- Single-column stacks below 640px for the stat-card rows and competitor
-  compare view
-- Audit and fix any horizontally-overflowing tables
-- Optional: bottom navigation bar for the 3-4 primary actions
-- Test on real iPhone + Android, not just resized browser
-- **Why:** YouTubers will glance at this from their phone first. Currently
-  works but feels cramped.
-- **Effort:** ~3 hours
+### [ ] Native mobile UX pass — round 2
+- First pass shipped: hamburger menu in `DashboardShell`, horizontal-
+  scroll for `TrackingLayout` tabs, always-visible Find-similar buttons
+  with 44pt tap targets, "Watch on YouTube ↗" now visible on touch
+  devices, signal Sign Out consolidated into the profile menu.
+- **What's left for a future pass:**
+  - Real-device testing on iPhone + Android (anything that doesn't feel
+    right gets a follow-up entry here)
+  - Audit horizontally-overflowing tables/grids on small screens
+  - Bottom navigation bar for primary actions (consider after testing)
+  - Verify all forms (auth, add channel, competitor URL input) are
+    comfortable on a phone keyboard
 
 ### [ ] "Discover" tab — Tier A (Trending in your niche)
 - Daily background job pulls YouTube's trending videos for 3-5 categories
@@ -125,6 +128,11 @@ ships. Add new items at the bottom of the relevant section.
 
 ## Recently shipped (last 30 days)
 
+- [x] Rate limiting infrastructure (wired into 3 YouTube-API routes; no-op
+      until Upstash env vars set)
+- [x] Mobile UX pass round 1 — hamburger menu, horizontal-scroll tracking
+      tabs, 44pt tap targets, hover-only buttons made tap-friendly,
+      Sign Out moved into profile dropdown
 - [x] Outlier scoring for personal channel videos
 - [x] Outlier scoring for competitor channel videos
 - [x] Dedicated `/tracking/outliers` page with filters and recompute

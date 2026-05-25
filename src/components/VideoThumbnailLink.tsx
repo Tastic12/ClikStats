@@ -86,7 +86,9 @@ export function VideoThumbnailLink({
             {comments !== undefined && !compact && <span>{formatCount(comments)} comments</span>}
           </div>
           {!compact && (
-            <p className="text-xs text-[var(--accent)] mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            // Visible by default on touch / mobile (no hover state available);
+            // fades on hover-capable pointers so the desktop UI stays clean.
+            <p className="text-xs text-[var(--accent)] mt-2 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity">
               Watch on YouTube ↗
             </p>
           )}

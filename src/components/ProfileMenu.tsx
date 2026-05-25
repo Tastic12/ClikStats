@@ -6,9 +6,10 @@ import { useShortsPreference } from '../../lib/preferences'
 
 type ProfileMenuProps = {
   email?: string
+  onSignOut?: () => void
 }
 
-export function ProfileMenu({ email }: ProfileMenuProps) {
+export function ProfileMenu({ email, onSignOut }: ProfileMenuProps) {
   const { profile, isLoading, updateDisplayName } = useUserProfile()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -119,6 +120,18 @@ export function ProfileMenu({ email }: ProfileMenuProps) {
           <div className="border-t border-[var(--border)] mt-1">
             <PreferencesSection />
           </div>
+
+          {onSignOut && (
+            <div className="border-t border-[var(--border)] mt-1 pt-1">
+              <button
+                type="button"
+                onClick={onSignOut}
+                className="w-full text-left px-4 py-3 text-sm text-[var(--muted-2)] hover:bg-[var(--elevated)] hover:text-[var(--danger)]"
+              >
+                Sign out
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

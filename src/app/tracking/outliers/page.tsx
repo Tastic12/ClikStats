@@ -207,7 +207,7 @@ export default function OutliersPage() {
                   type="button"
                   onClick={handleRecompute}
                   disabled={recomputing || !channel}
-                  className="text-xs font-medium text-[var(--accent)] hover:underline disabled:opacity-50"
+                  className="inline-flex items-center min-h-11 px-3 py-2 text-xs font-medium text-[var(--accent)] hover:bg-[var(--elevated)] rounded-md disabled:opacity-50"
                 >
                   {recomputing ? 'Recomputing…' : 'Recompute scores'}
                 </button>
@@ -257,7 +257,7 @@ export default function OutliersPage() {
                         />
                         <a
                           href={similarLink(v.video_id, v.title)}
-                          className="mt-1.5 text-center text-[11px] font-medium text-[var(--muted)] hover:text-[var(--accent)] rounded px-2 py-1 hover:bg-[var(--elevated)] ring-1 ring-transparent hover:ring-[var(--border)] transition-colors"
+                          className="mt-1.5 flex items-center justify-center min-h-11 text-xs font-medium text-[var(--muted)] hover:text-[var(--accent)] rounded px-2 py-2 bg-[var(--elevated)]/40 hover:bg-[var(--elevated)] ring-1 ring-[var(--border)] hover:ring-[var(--accent)] transition-colors"
                         >
                           Find similar thumbnails
                         </a>
@@ -267,7 +267,7 @@ export default function OutliersPage() {
                 ) : (
                   <div className="divide-y divide-[var(--border)]">
                     {filtered.map((v, i) => (
-                      <div key={v.id} className="flex items-stretch">
+                      <div key={v.id} className="flex flex-col sm:flex-row sm:items-stretch">
                         <div className="flex-1 min-w-0">
                           <VideoThumbnailLink
                             videoId={v.video_id}
@@ -282,7 +282,7 @@ export default function OutliersPage() {
                         </div>
                         <a
                           href={similarLink(v.video_id, v.title)}
-                          className="self-center ml-2 mr-2 whitespace-nowrap text-[11px] font-medium text-[var(--muted)] hover:text-[var(--accent)] rounded px-2 py-1 hover:bg-[var(--elevated)] ring-1 ring-transparent hover:ring-[var(--border)] transition-colors"
+                          className="self-stretch sm:self-center ml-0 sm:ml-2 mb-2 sm:mb-0 mx-2 sm:mr-2 inline-flex items-center justify-center min-h-11 whitespace-nowrap text-xs font-medium text-[var(--muted)] hover:text-[var(--accent)] rounded px-3 py-2 bg-[var(--elevated)]/40 hover:bg-[var(--elevated)] ring-1 ring-[var(--border)] hover:ring-[var(--accent)] transition-colors"
                         >
                           Find similar
                         </a>

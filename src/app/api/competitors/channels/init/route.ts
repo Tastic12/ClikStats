@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchChannelVideos, fetchYouTubeChannel } from '../../../../../../lib/youtube-channel'
+import { checkRateLimit } from '../../../../../../lib/rate-limit'
 
 // How many recent uploads to fetch per competitor. Big enough to give a stable
 // median, small enough to keep YouTube API quota usage low (~3 units).
@@ -35,6 +36,14 @@ export async function POST(request: Request) {
     const { data: { user }, error: authError } = await admin.auth.getUser(token)
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const rl = await checkRateLimit(user.id, 'competitors-init')
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: rl.message },
+        { status: rl.status, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+      )
     }
 
     const { channel, youtubeChannelId, channelUrl } = await fetchYouTubeChannel(

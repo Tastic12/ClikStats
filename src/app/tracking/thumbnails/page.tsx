@@ -415,7 +415,7 @@ function ThumbnailSearchCard({
             e.preventDefault()
             onFindSimilar(result.youtube_video_id, result.title ?? null)
           }}
-          className="w-full text-[11px] font-medium text-[var(--muted)] hover:text-[var(--accent)] rounded px-2 py-1 hover:bg-[var(--card)] ring-1 ring-transparent hover:ring-[var(--border)] transition-colors"
+          className="w-full min-h-11 text-xs font-medium text-[var(--muted)] hover:text-[var(--accent)] rounded px-2 py-2 bg-[var(--card)]/40 hover:bg-[var(--card)] ring-1 ring-[var(--border)] hover:ring-[var(--accent)] transition-colors"
         >
           Find similar
         </button>
