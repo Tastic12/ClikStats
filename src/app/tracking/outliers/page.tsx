@@ -9,6 +9,9 @@ import {
   useOwnedChannel,
   useVideos,
   recomputeOutlierScores,
+  recomputeNicheOutlierScores,
+  setNicheGroupId,
+  useCompetitorChannelGroups,
 } from '../../../../lib/hooks'
 import { useShortsPreference } from '../../../../lib/preferences'
 import { DashboardShell } from '../../../components/DashboardShell'
@@ -25,6 +28,7 @@ function similarLink(videoId: string, title: string | null | undefined) {
 }
 
 type KindFilter = 'all' | 'long' | 'short'
+type SortMode = 'score' | 'velocity' | 'niche'
 
 const SCORE_THRESHOLDS: Array<{ value: number; label: string }> = [
   { value: 0, label: 'All scored' },
@@ -52,11 +56,14 @@ export default function OutliersPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [kind, setKind] = useState<KindFilter>('all')
   const [minScore, setMinScore] = useState<number>(1.5)
+  const [sortBy, setSortBy] = useState<SortMode>('score')
+  const [nicheGroupId, setNicheGroupIdLocal] = useState<string>('')
   const [recomputing, setRecomputing] = useState(false)
   const [recomputeMsg, setRecomputeMsg] = useState('')
 
   const { channel, isLoading: channelLoading } = useOwnedChannel()
   const { videos, isLoading: videosLoading, mutate: mutateVideos } = useVideos(channel?.id)
+  const { groups } = useCompetitorChannelGroups()
   const { hideShorts } = useShortsPreference()
 
   useEffect(() => {
@@ -77,8 +84,16 @@ export default function OutliersPage() {
         // …and 'all' defers to the global Hide Shorts preference.
         return hideShorts ? v.is_short !== true : true
       })
-      .sort((a, b) => (b.outlier_score ?? 0) - (a.outlier_score ?? 0))
-  }, [videos, kind, minScore, hideShorts])
+      .sort((a, b) => {
+        if (sortBy === 'velocity') {
+          return (b.outlier_velocity_score ?? 0) - (a.outlier_velocity_score ?? 0)
+        }
+        if (sortBy === 'niche') {
+          return (b.niche_outlier_score ?? 0) - (a.niche_outlier_score ?? 0)
+        }
+        return (b.outlier_score ?? 0) - (a.outlier_score ?? 0)
+      })
+  }, [videos, kind, minScore, hideShorts, sortBy])
 
   const totalScored = scoredCount(videos)
   const best = topScore(videos)
@@ -89,6 +104,7 @@ export default function OutliersPage() {
     setRecomputeMsg('')
     try {
       await recomputeOutlierScores(channel.id)
+      await recomputeNicheOutlierScores()
       await mutateVideos()
       setRecomputeMsg('Outlier scores refreshed.')
     } catch (err) {
@@ -130,10 +146,10 @@ export default function OutliersPage() {
                 What are outliers?
               </h2>
               <p className="text-xs text-[var(--muted)] max-w-3xl">
-                An <strong>outlier score</strong> compares a video to your own channel&apos;s normal
-                output. A <code>3×</code> score means the video got three times the median views of your
-                recent 30 uploads of the same kind (Shorts and long-form are scored separately, so a
-                viral Short won&apos;t skew your long-form rankings).
+                An <strong>outlier score</strong> compares a video to your channel&apos;s recent median.
+                <strong> Velocity</strong> compares views-per-day to your norm (catches fast breakouts).
+                <strong> Niche</strong> compares you to tracked competitors in a category you pick below.
+                Shorts are detected by <strong>portrait thumbnails</strong> (9:16), not just duration.
               </p>
             </section>
 
@@ -198,6 +214,41 @@ export default function OutliersPage() {
               </div>
 
               <div className="flex flex-col gap-1">
+                <label className="text-xs text-[var(--muted)]">Sort by</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortMode)}
+                  className="cs-input px-2 py-1.5 text-sm"
+                >
+                  <option value="score">Channel outlier score</option>
+                  <option value="velocity">Velocity (views/day)</option>
+                  <option value="niche">Niche vs competitors</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-[var(--muted)]">Niche category</label>
+                <select
+                  value={nicheGroupId}
+                  onChange={async (e) => {
+                    const v = e.target.value
+                    setNicheGroupIdLocal(v)
+                    await setNicheGroupId(v || null)
+                    await recomputeNicheOutlierScores()
+                    await mutateVideos()
+                  }}
+                  className="cs-input px-2 py-1.5 text-sm max-w-[200px]"
+                >
+                  <option value="">All competitors</option>
+                  {(groups ?? []).map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
                 <label className="text-xs text-[var(--muted)]">Layout</label>
                 <ViewModeToggle value={viewMode} onChange={setViewMode} />
               </div>
@@ -255,6 +306,17 @@ export default function OutliersPage() {
                           outlierScore={v.outlier_score}
                           layout="card"
                         />
+                        {(v.outlier_velocity_score != null || v.niche_outlier_score != null) && (
+                          <p className="text-[10px] text-[var(--muted-2)] px-1">
+                            {v.outlier_velocity_score != null && (
+                              <>Velocity {formatOutlierScore(v.outlier_velocity_score)}×</>
+                            )}
+                            {v.outlier_velocity_score != null && v.niche_outlier_score != null && ' · '}
+                            {v.niche_outlier_score != null && (
+                              <>Niche {formatOutlierScore(v.niche_outlier_score)}×</>
+                            )}
+                          </p>
+                        )}
                         <a
                           href={similarLink(v.video_id, v.title)}
                           className="mt-1.5 flex items-center justify-center min-h-11 text-xs font-medium text-[var(--muted)] hover:text-[var(--accent)] rounded px-2 py-2 bg-[var(--elevated)]/40 hover:bg-[var(--elevated)] ring-1 ring-[var(--border)] hover:ring-[var(--accent)] transition-colors"

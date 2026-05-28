@@ -74,12 +74,16 @@ export interface Video {
   title: string
   description?: string
   thumbnail_url?: string
+  thumbnail_width?: number | null
+  thumbnail_height?: number | null
   published_at: string
   duration?: string
   view_count?: number
   like_count?: number
   comment_count?: number
   outlier_score?: number | null
+  outlier_velocity_score?: number | null
+  niche_outlier_score?: number | null
   is_short?: boolean | null
   created_at: string
   updated_at: string

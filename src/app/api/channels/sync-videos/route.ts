@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchChannelVideos } from '../../../../../lib/youtube-channel'
 import { checkRateLimit } from '../../../../../lib/rate-limit'
+import { logYoutubeApiUsage } from '../../../../../lib/admin'
 
 export async function POST(request: Request) {
   try {
@@ -52,6 +53,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, synced: 0, message: 'No videos returned from YouTube' })
     }
 
+    const playlistPages = Math.ceil(videoRecords.length / 50)
+    const videoDetailCalls = Math.ceil(videoRecords.length / 50)
+    await logYoutubeApiUsage(admin, {
+      userId: user.id,
+      endpoint: 'channels/sync-videos',
+      units: 1 + playlistPages + videoDetailCalls + 1,
+    })
+
     const { data: upserted, error: upsertError } = await admin
       .from('videos')
       .upsert(
@@ -73,6 +82,13 @@ export async function POST(request: Request) {
     })
     if (scoreError) {
       console.error('recompute_outlier_scores failed:', scoreError)
+    }
+
+    const { error: nicheError } = await admin.rpc('recompute_niche_outlier_scores', {
+      user_uuid: user.id,
+    })
+    if (nicheError) {
+      console.error('recompute_niche_outlier_scores failed:', nicheError)
     }
 
     const ytChannel = await fetch(

@@ -1,3 +1,5 @@
+import { pickThumbnailFromYoutube } from './thumbnail-meta'
+
 /** Parse a YouTube channel URL into a lookup key for the Data API. */
 export function parseChannelInput(input: string): {
   kind: 'id' | 'handle' | 'username' | 'legacy'
@@ -96,6 +98,8 @@ export type ChannelVideoRecord = {
   title: string
   description: string
   thumbnail_url?: string
+  thumbnail_width?: number | null
+  thumbnail_height?: number | null
   published_at: string
   duration?: string
   view_count: number
@@ -120,7 +124,12 @@ type VideoDetailItem = {
     title?: string
     description?: string
     publishedAt?: string
-    thumbnails?: { high?: { url: string }; medium?: { url: string } }
+    thumbnails?: {
+      high?: { url: string; width?: number; height?: number }
+      medium?: { url: string; width?: number; height?: number }
+      standard?: { url: string; width?: number; height?: number }
+      maxres?: { url: string; width?: number; height?: number }
+    }
   }
 }
 
@@ -158,7 +167,12 @@ export async function fetchChannelVideos(
         title: string
         description?: string
         publishedAt: string
-        thumbnails?: { high?: { url: string }; medium?: { url: string } }
+        thumbnails?: {
+      high?: { url: string; width?: number; height?: number }
+      medium?: { url: string; width?: number; height?: number }
+      standard?: { url: string; width?: number; height?: number }
+      maxres?: { url: string; width?: number; height?: number }
+    }
       }
     }
 
@@ -193,13 +207,16 @@ export async function fetchChannelVideos(
     return capped.map((item) => {
       const videoId = item.snippet.resourceId.videoId
       const details = detailsMap.get(videoId)
-      const thumbs = item.snippet.thumbnails
-      const detailThumbs = details?.snippet?.thumbnails
+      const picked = pickThumbnailFromYoutube(
+        item.snippet.thumbnails ?? details?.snippet?.thumbnails
+      )
       return {
         video_id: videoId,
         title: item.snippet.title,
         description: item.snippet.description || details?.snippet?.description || '',
-        thumbnail_url: thumbs?.high?.url || thumbs?.medium?.url || detailThumbs?.high?.url,
+        thumbnail_url: picked.url,
+        thumbnail_width: picked.width,
+        thumbnail_height: picked.height,
         published_at: item.snippet.publishedAt,
         duration: details?.contentDetails?.duration,
         view_count: details?.statistics?.viewCount
@@ -285,18 +302,24 @@ function mapSearchResultsToVideos(
 ) {
   return searchItems.map((video: { id: { videoId: string }; snippet: Record<string, unknown> }) => {
     const details = detailItems?.find((d) => d.id === video.id.videoId)
-    const thumbs = video.snippet.thumbnails as { high?: { url: string }; medium?: { url: string } }
-    const detailThumbs = details?.snippet?.thumbnails as { high?: { url: string }; medium?: { url: string } } | undefined
+    const picked = pickThumbnailFromYoutube(
+      (video.snippet.thumbnails as Parameters<typeof pickThumbnailFromYoutube>[0]) ??
+        details?.snippet?.thumbnails
+    )
     return {
       video_id: video.id.videoId,
       title: video.snippet.title as string,
       description: (video.snippet.description as string) || '',
-      thumbnail_url: thumbs?.high?.url || thumbs?.medium?.url || detailThumbs?.high?.url,
+      thumbnail_url: picked.url,
+      thumbnail_width: picked.width,
+      thumbnail_height: picked.height,
       published_at: video.snippet.publishedAt as string,
       duration: details?.contentDetails?.duration as string | undefined,
       view_count: details?.statistics?.viewCount ? parseInt(details.statistics.viewCount, 10) : 0,
       like_count: details?.statistics?.likeCount ? parseInt(details.statistics.likeCount, 10) : 0,
-      comment_count: details?.statistics?.commentCount ? parseInt(details.statistics.commentCount, 10) : 0,
+      comment_count: details?.statistics?.commentCount
+        ? parseInt(details.statistics.commentCount, 10)
+        : 0,
     }
   })
 }

@@ -649,13 +649,14 @@ export type DiscoverSettings = {
   category_ids: number[]
 }
 
-export function useDiscoverVideos(categoryId?: number | null) {
-  const key = categoryId ? `discover-videos-${categoryId}` : 'discover-videos-all'
+export function useDiscoverVideos(categoryId?: number | null, longFormOnly = true) {
+  const key = `discover-videos-${categoryId ?? 'all'}-${longFormOnly ? 'long' : 'all'}`
   const { data, error, mutate } = useSWR(key, async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) throw new Error('Not authenticated')
-    const params = new URLSearchParams({ limit: '48' })
+    const params = new URLSearchParams({ limit: '100' })
     if (categoryId) params.set('category_id', String(categoryId))
+    if (longFormOnly) params.set('long_form_only', '1')
     const response = await fetch(`/api/discover/videos?${params}`, {
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
@@ -665,10 +666,17 @@ export function useDiscoverVideos(categoryId?: number | null) {
       videos: DiscoveredVideo[]
       region_code: string
       category_ids: number[]
+      stats?: {
+        rows_in_db: number
+        unique_videos: number
+        showing: number
+        shorts_in_pool: number
+      }
     }
   })
   return {
     videos: data?.videos,
+    stats: data?.stats,
     regionCode: data?.region_code,
     categoryIds: data?.category_ids,
     isLoading: !error && !data,
@@ -707,10 +715,48 @@ export async function saveDiscoverSettings(settings: DiscoverSettings) {
 export async function syncDiscoverTrending() {
   return postAuthedApi('/api/discover/sync', {}) as Promise<{
     saved: number
+    unique_videos: number
     fetched: number
     api_calls: number
+    message?: string
     errors?: string[]
   }>
+}
+
+export async function bulkImportCompetitors(channelUrls: string[], groupId?: string | null) {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not authenticated')
+  const response = await fetch('/api/competitors/channels/bulk-init', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ channel_urls: channelUrls, group_id: groupId }),
+  })
+  const json = await response.json()
+  if (!response.ok) throw new Error(json.error || 'Bulk import failed')
+  return json as {
+    added: number
+    total: number
+    results: Array<{ input: string; status: string; channelName?: string; error?: string }>
+  }
+}
+
+export async function recomputeNicheOutlierScores() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  const { error } = await supabase.rpc('recompute_niche_outlier_scores', {
+    user_uuid: user.id,
+  })
+  if (error) throw error
+}
+
+export async function setNicheGroupId(groupId: string | null) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  const { error } = await supabase.from('users').update({ niche_group_id: groupId }).eq('id', user.id)
+  if (error) throw error
 }
 
 // Utility function to extract YouTube video ID from URL

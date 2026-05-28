@@ -1,3 +1,5 @@
+import { pickThumbnailFromYoutube } from './thumbnail-meta'
+
 /** YouTube Data API videoCategoryId values (common categories). */
 export const YOUTUBE_VIDEO_CATEGORIES = [
   { id: 1, label: 'Film & Animation' },
@@ -32,6 +34,8 @@ export type TrendingVideoRecord = {
   video_id: string
   title: string
   thumbnail_url: string
+  thumbnail_width: number | null
+  thumbnail_height: number | null
   channel_id: string
   channel_name: string
   category_id: number
@@ -51,9 +55,10 @@ type YouTubeTrendingResponse = {
       channelTitle: string
       publishedAt: string
       thumbnails: {
-        maxres?: { url: string }
-        high?: { url: string }
-        medium?: { url: string }
+        maxres?: { url: string; width?: number; height?: number }
+        standard?: { url: string; width?: number; height?: number }
+        high?: { url: string; width?: number; height?: number }
+        medium?: { url: string; width?: number; height?: number }
       }
       categoryId?: string
     }
@@ -97,16 +102,14 @@ export async function fetchTrendingForCategory(
   }
 
   return (data.items ?? []).map((item) => {
-    const thumb =
-      item.snippet.thumbnails.maxres?.url ||
-      item.snippet.thumbnails.high?.url ||
-      item.snippet.thumbnails.medium?.url ||
-      ''
+    const picked = pickThumbnailFromYoutube(item.snippet.thumbnails)
 
     return {
       video_id: item.id,
       title: item.snippet.title,
-      thumbnail_url: thumb,
+      thumbnail_url: picked.url || '',
+      thumbnail_width: picked.width,
+      thumbnail_height: picked.height,
       channel_id: item.snippet.channelId,
       channel_name: item.snippet.channelTitle,
       category_id: Number(item.snippet.categoryId || categoryId),

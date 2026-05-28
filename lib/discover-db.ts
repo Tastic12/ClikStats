@@ -13,6 +13,8 @@ export async function upsertDiscoveredVideos(
     video_id: r.video_id,
     title: r.title,
     thumbnail_url: r.thumbnail_url,
+    thumbnail_width: r.thumbnail_width,
+    thumbnail_height: r.thumbnail_height,
     channel_id: r.channel_id,
     channel_name: r.channel_name,
     category_id: r.category_id,

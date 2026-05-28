@@ -27,7 +27,8 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url)
     const categoryFilter = url.searchParams.get('category_id')
-    const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 48, 12), 100)
+    const longFormOnly = url.searchParams.get('long_form_only') === '1'
+    const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 100, 12), 200)
 
     const { data: settings } = await admin
       .from('user_discover_settings')
@@ -41,15 +42,18 @@ export async function GET(request: Request) {
     let query = admin
       .from('discovered_videos')
       .select(
-        'id, video_id, title, thumbnail_url, channel_id, channel_name, category_id, region_code, published_at, view_count, like_count, is_short, last_seen_at'
+        'id, video_id, title, thumbnail_url, thumbnail_width, thumbnail_height, channel_id, channel_name, category_id, region_code, published_at, view_count, like_count, is_short, last_seen_at'
       )
       .eq('region_code', regionCode)
       .in('category_id', categoryIds)
       .order('view_count', { ascending: false })
-      .limit(limit)
+      .limit(500)
 
     if (categoryFilter) {
       query = query.eq('category_id', Number(categoryFilter))
+    }
+    if (longFormOnly) {
+      query = query.eq('is_short', false)
     }
 
     const { data, error } = await query
@@ -58,10 +62,31 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // Same video can appear in multiple category rows — keep highest view count.
+    const byVideo = new Map<string, NonNullable<typeof data>[number]>()
+    for (const row of data ?? []) {
+      const existing = byVideo.get(row.video_id)
+      if (!existing || (row.view_count ?? 0) > (existing.view_count ?? 0)) {
+        byVideo.set(row.video_id, row)
+      }
+    }
+
+    const deduped = [...byVideo.values()]
+      .sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0))
+      .slice(0, limit)
+
+    const totalRows = data?.length ?? 0
+
     return NextResponse.json({
-      videos: data ?? [],
+      videos: deduped,
       region_code: regionCode,
       category_ids: categoryIds,
+      stats: {
+        rows_in_db: totalRows,
+        unique_videos: byVideo.size,
+        showing: deduped.length,
+        shorts_in_pool: (data ?? []).filter((r) => r.is_short === true).length,
+      },
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'

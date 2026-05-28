@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { upsertDiscoveredVideos } from '../../../../../lib/discover-db'
 import { checkRateLimit } from '../../../../../lib/rate-limit'
+import { logYoutubeApiUsage } from '../../../../../lib/admin'
 import {
   DEFAULT_DISCOVER_CATEGORY_IDS,
   fetchTrendingBatch,
@@ -58,13 +59,23 @@ export async function POST(request: Request) {
 
     const saved = await upsertDiscoveredVideos(admin, records)
 
+    await logYoutubeApiUsage(admin, {
+      userId: user.id,
+      endpoint: 'discover/sync',
+      units: apiCalls,
+    })
+
+    const uniqueVideos = new Set(records.map((r) => r.video_id)).size
+
     return NextResponse.json({
       success: true,
       saved,
+      unique_videos: uniqueVideos,
       fetched: records.length,
       api_calls: apiCalls,
       region_code: regionCode,
       category_ids: categoryIds,
+      message: `Saved ${saved} rows (${uniqueVideos} unique videos) from ${apiCalls} API calls.`,
       errors: errors.length ? errors : undefined,
     })
   } catch (error) {

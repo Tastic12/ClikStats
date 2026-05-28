@@ -157,7 +157,7 @@ function PreferencesSection() {
             Hide Shorts
           </span>
           <span className="block text-[11px] text-[var(--muted)]">
-            Filter out videos under 60 seconds across the app.
+            Hides portrait thumbnails (9:16 Shorts) and videos under 60 seconds.
           </span>
         </span>
         <span

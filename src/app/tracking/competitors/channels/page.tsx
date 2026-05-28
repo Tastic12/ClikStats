@@ -12,6 +12,7 @@ import {
   useCompetitorChannelVideosBatch,
   initCompetitorChannel,
   refreshCompetitorChannels,
+  bulkImportCompetitors,
 } from '../../../../../lib/hooks'
 import { useShortsPreference } from '../../../../../lib/preferences'
 import { DashboardShell } from '../../../../components/DashboardShell'
@@ -42,6 +43,9 @@ export default function CompetitorChannelsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshMsg, setRefreshMsg] = useState('')
+  const [bulkText, setBulkText] = useState('')
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [bulkMsg, setBulkMsg] = useState('')
 
   const { channels, isLoading, mutate } = useCompetitorChannels()
   const { groups, createGroup } = useCompetitorChannelGroups()
@@ -92,6 +96,32 @@ export default function CompetitorChannelsPage() {
       setError(err instanceof Error ? err.message : 'Failed to add channel')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleBulkImport = async () => {
+    const lines = bulkText
+      .split(/[\n,]+/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+    if (!lines.length) {
+      setBulkMsg('Paste at least one channel URL or @handle.')
+      return
+    }
+    setBulkLoading(true)
+    setBulkMsg('')
+    setError('')
+    try {
+      const groupForAdd =
+        categoryId && categoryId !== ALL_CATEGORIES_ID ? categoryId : null
+      const result = await bulkImportCompetitors(lines, groupForAdd)
+      setBulkText('')
+      mutate()
+      setBulkMsg(`Added ${result.added} of ${result.total} channels.`)
+    } catch (err) {
+      setBulkMsg(err instanceof Error ? err.message : 'Bulk import failed.')
+    } finally {
+      setBulkLoading(false)
     }
   }
 
@@ -196,6 +226,32 @@ export default function CompetitorChannelsPage() {
             {refreshMsg && (
               <p className="mt-2 text-xs text-[var(--muted-2)]">{refreshMsg}</p>
             )}
+
+            <div className="mt-6 pt-6 border-t border-[var(--border)]">
+              <h3 className="text-sm font-semibold text-[var(--foreground)] mb-1">
+                Bulk import
+              </h3>
+              <p className="text-xs text-[var(--muted)] mb-2">
+                Paste many channel URLs or @handles (one per line). Max 50 per batch. Uses the
+                selected category above.
+              </p>
+              <textarea
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+                rows={5}
+                placeholder={'https://www.youtube.com/@channel1\n@channel2\nhttps://...'}
+                className="cs-input w-full px-3 py-2 text-sm font-mono"
+              />
+              <button
+                type="button"
+                onClick={handleBulkImport}
+                disabled={bulkLoading || !bulkText.trim()}
+                className="mt-2 cs-btn-primary min-h-11 px-4 py-2 text-sm disabled:opacity-50"
+              >
+                {bulkLoading ? 'Importing…' : 'Import channels'}
+              </button>
+              {bulkMsg && <p className="mt-2 text-xs text-[var(--muted-2)]">{bulkMsg}</p>}
+            </div>
           </section>
 
           {isLoading || batchLoading ? (

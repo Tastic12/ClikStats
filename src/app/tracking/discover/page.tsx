@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../../../../lib/supabase'
@@ -42,7 +42,7 @@ export default function DiscoverPage() {
   const [syncing, setSyncing] = useState(false)
   const [statusMsg, setStatusMsg] = useState('')
 
-  const { videos, isLoading, mutate } = useDiscoverVideos(categoryFilter)
+  const { videos, stats, isLoading, mutate } = useDiscoverVideos(categoryFilter, hideShorts)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user: u } }) => {
@@ -58,10 +58,7 @@ export default function DiscoverPage() {
       .catch(() => {})
   }, [user])
 
-  const visibleVideos = useMemo(() => {
-    const list = videos ?? []
-    return hideShorts ? list.filter((v) => v.is_short !== true) : list
-  }, [videos, hideShorts])
+  const visibleVideos = videos ?? []
 
   const toggleCategory = (id: number) => {
     setSettings((prev) => {
@@ -94,11 +91,7 @@ export default function DiscoverPage() {
     try {
       const r = await syncDiscoverTrending()
       await mutate()
-      setStatusMsg(
-        r.errors?.length
-          ? `Saved ${r.saved} videos (${r.errors.length} category errors).`
-          : `Fetched ${r.fetched} trending videos (${r.api_calls} API calls).`
-      )
+      setStatusMsg(r.message ?? `Fetched ${r.unique_videos} unique videos.`)
     } catch (err) {
       setStatusMsg(err instanceof Error ? err.message : 'Sync failed.')
     } finally {
@@ -251,12 +244,15 @@ export default function DiscoverPage() {
           ) : (
             <>
               <p className="text-xs text-[var(--muted)]">
-                {visibleVideos.length} trending video{visibleVideos.length === 1 ? '' : 's'}
-                {hideShorts && (videos?.length ?? 0) > visibleVideos.length && (
+                Showing {visibleVideos.length} long-form trending video
+                {visibleVideos.length === 1 ? '' : 's'}
+                {stats && (
                   <span className="text-[var(--muted-2)]">
                     {' '}
-                    · {(videos?.length ?? 0) - visibleVideos.length} Short
-                    {(videos?.length ?? 0) - visibleVideos.length === 1 ? '' : 's'} hidden
+                    · {stats.unique_videos} unique in pool
+                    {hideShorts && stats.shorts_in_pool > 0 && (
+                      <> · {stats.shorts_in_pool} Shorts excluded (portrait thumbnail)</>
+                    )}
                   </span>
                 )}
               </p>

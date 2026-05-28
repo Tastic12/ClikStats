@@ -99,6 +99,8 @@ export async function POST(request: Request) {
           video_id: v.video_id,
           title: v.title,
           thumbnail_url: v.thumbnail_url,
+          thumbnail_width: v.thumbnail_width,
+          thumbnail_height: v.thumbnail_height,
           published_at: v.published_at,
           duration: v.duration,
           view_count: v.view_count,
@@ -114,6 +116,8 @@ export async function POST(request: Request) {
       if (scoreError) {
         console.error('recompute_competitor_outlier_scores failed:', scoreError)
       }
+
+      await admin.rpc('recompute_niche_outlier_scores', { user_uuid: user.id })
     }
 
     return NextResponse.json({ success: true, channel: record })
