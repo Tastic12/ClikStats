@@ -14,136 +14,102 @@ ships. Add new items at the bottom of the relevant section.
 
 ## Up next — high value
 
-### [ ] Daily metrics cron schedule (Supabase Studio setup)
-- Enable `pg_cron` and `pg_net` extensions in Database → Extensions
-- Create cron job pointing at the `update-metrics-cron` edge function
-  - Schedule: `0 3 * * *` (daily, 3am UTC)
-  - Method: POST
-  - URL: `https://<project-ref>.supabase.co/functions/v1/update-metrics-cron`
-  - Auth header: `Bearer <service_role_key>`
-- **Why:** keeps videos, channels, and outlier scores fresh nightly with zero
-  manual clicks. ~3-5 YouTube API units/day cost.
-- **Effort:** ~5 min, one-time setup
+### [x] Daily metrics cron schedule (Supabase Studio setup)
+- User confirmed SQL/cron succeeded (2026-05-25).
+- Nightly `update-metrics-cron` keeps channel/video stats + outlier scores fresh.
 
-### [ ] Rate limiting — finish wiring up Upstash
-- Code is shipped (`lib/rate-limit.ts` + wired into the three protected
-  routes). It's a no-op until Upstash env vars are set, so currently
-  inactive in production.
-- **What's left:** the user needs to set two env vars (locally in
-  `.env.local` and on Vercel → Settings → Environment Variables):
-  - `UPSTASH_REDIS_REST_URL`
-  - `UPSTASH_REDIS_REST_TOKEN`
-- **How to get them:** sign up free at https://upstash.com → create a
-  Redis database (Global / Free tier) → copy the REST URL + token from
-  the database details page.
-- **Current limits** (all per-user, sliding window):
-  - `sync-videos`: 5/min, 30/day
-  - `competitors-refresh`: 3/min, 20/day
-  - `competitors-init`: 10/min, 50/day
+### [x] Rate limiting (Upstash)
+- Code shipped + env vars set locally and on Vercel Production.
+
+### [ ] Discover nightly cron (optional second job)
+- Deploy `discover-trending-cron` edge function (code in repo).
+- Create cron job (e.g. `0 4 * * *` daily, 4am UTC) → same pattern as metrics cron.
+- Fetches GB trending for Gaming, Entertainment, News, Tech, Sports, Music, How-to (~7 API units/day).
+- **Manual alternative:** users click **Refresh trending now** on Discover tab.
 
 ---
 
-## Up next — medium value
-
-### [ ] Native mobile UX pass — round 2
-- First pass shipped: hamburger menu in `DashboardShell`, horizontal-
-  scroll for `TrackingLayout` tabs, always-visible Find-similar buttons
-  with 44pt tap targets, "Watch on YouTube ↗" now visible on touch
-  devices, signal Sign Out consolidated into the profile menu.
-- **What's left for a future pass:**
-  - Real-device testing on iPhone + Android (anything that doesn't feel
-    right gets a follow-up entry here)
-  - Audit horizontally-overflowing tables/grids on small screens
-  - Bottom navigation bar for primary actions (consider after testing)
-  - Verify all forms (auth, add channel, competitor URL input) are
-    comfortable on a phone keyboard
-
-### [ ] "Discover" tab — Tier A (Trending in your niche)
-- Daily background job pulls YouTube's trending videos for 3-5 categories
-  the user selects (gaming, music, news, sports, tech, etc.)
-- Embeds thumbnails into the existing `thumbnail_embeddings` table with
-  `source = 'discovered'`
-- New Discover tab surfaces these in the dashboard, separately from tracked
-  content
-- Thumbnail search starts returning these as well, broadening the corpus
-- **Why:** turns thumbnail search from "search across people I track" into
-  "search across what's currently working on YouTube," without needing the
-  user to manually add every competitor.
-- **Cost:** ~75 YouTube API units/day for all categories worldwide. Cheap.
-- **Effort:** ~3 hours
-
----
-
-## Backlog — low priority or exploratory
-
-### [ ] API quota usage dashboard
-- Small panel showing today's YouTube API unit consumption + remaining
-- Useful once we have multiple users
-- **Effort:** ~1 hour
+## Up next — medium value (user confirmed interest)
 
 ### [ ] Bulk competitor import
-- Paste a list of `@handles` or YouTube URLs, we add them all in one go
-- Surface progress + any failures inline
-- **Effort:** ~1 hour
+- Paste many `@handles` or channel URLs at once; progress bar + per-row errors.
+- **Why:** building a niche watchlist one-by-one is slow.
+- **Effort:** ~1 hour.
 
-### [ ] Outlier notifications (email or in-app)
-- When a tracked video crosses a threshold (e.g. first time hitting 5×) for
-  the first time, optionally notify
-- Probably weekly digest is more useful than instant
-- **Effort:** ~3 hours
+### [ ] In-app / browser outlier notifications
+- **Not email** — use **browser push notifications** (Web Notifications API) when the
+  tab/site is allowed, plus an **in-app notification centre** (bell icon, unread list).
+- Works on mobile **browser** too (user adds site to home screen / allows notifications).
+- Alert when: your video or a tracked competitor crosses an outlier threshold (e.g. first time ≥3× or ≥5×).
+- Prefer **weekly digest** or batched alerts over constant pings.
+- Needs: notification preferences, stored events table, optional service worker for push.
+- **Effort:** ~3 hours.
 
 ### [ ] Time-aware outlier scoring
-- Currently the score compares a video to the channel's recent median
-- Could also adjust for video age (newer videos with high scores are more
-  impressive than 6-month-old ones with the same score)
-- Could add a velocity-based "trending now" sub-score
-- **Effort:** ~2 hours, plus some research on what's actually useful
-
-### [ ] "Discover" tab — Tier B (Search-based)
-- Define niches, periodically run `search.list` for top performers
-- More flexible than Tier A, but **100 YouTube units per search call** vs
-  1 unit for trending
-- Worth building only if Tier A's coverage isn't enough
-- **Effort:** ~2 hours
+- Adjust scores for **video age** — a 3× on a 2-day-old upload beats 3× on a 6-month-old video.
+- Optional **velocity** sub-score (views/day vs channel norm).
+- **Effort:** ~2 hours + tuning.
 
 ### [ ] Niche-aware outlier scoring
-- Right now we compare each channel to itself. Could also compare to peers in
-  the same niche/category for a "relative-to-niche" score
-- Requires we know channel niches (would need category enrichment)
+- Compare performance to **peers in the same competitor category** (news, gaming, etc.), not only the channel's own median.
+- Example: "4× vs your channel" but also "top 10% vs other channels in your News category."
+- Uses existing **competitor channel groups** as niches.
+- **Effort:** ~2–3 hours.
+
+### [ ] Native mobile UX pass — round 2
+- User tested on phone; fixes deferred to a later session.
+- Real-device issues → add as bullet items here when ready.
+
+---
+
+## Backlog — lower priority
+
+### [ ] API quota usage dashboard (**admin-only**)
+- Only visible to admin user(s) — requires a small **admin area** of the site
+  (see below), not public.
+- Shows estimated YouTube API units used today / remaining.
+- **Effort:** ~1 hour (+ admin gate ~1 hour if not built yet).
+
+### [ ] Admin area (foundation for quota dashboard + future tools)
+- Restrict pages/routes to allowlisted emails (env var `ADMIN_EMAILS`).
+- Home for quota dashboard, manual cron triggers, user stats later.
+- **Trigger:** before quota dashboard or multi-user ops.
+
+### [ ] "Discover" tab — Tier B (search-based) — see explanation below
+- Only if Tier A trending doesn't cover a sub-niche well enough.
+- **Effort:** ~2 hours. **Cost:** ~100 YouTube units per search query/day.
+
+### [ ] Discover Tier B explanation (for future reference)
+- **Tier A (shipped):** "What's on YouTube's official **Trending** chart today?" — same list everyone sees on YouTube Trending, filtered by category.
+- **Tier B (not built):** "Find me the **top videos about a topic** even if they're not on Trending." Example: search YouTube for `"iPhone 16 review"` and index the top 20 results. Useful for **specific sub-niches** Trending misses (e.g. "Scottish football highlights"). Costs more API quota because `search.list` = 100 units per query.
 
 ---
 
 ## Not planned (with reasoning)
 
-### Full continuous YouTube crawl (Tier C of Discovery)
-- This is viewstats Pro's actual moat — indexing millions of channels they
-  don't know you care about
-- **Why we won't:** requires hundreds of millions of YouTube API units/day,
-  YouTube Partner Program status (or many keys), terabytes of vector storage,
-  and ~$1,000+/mo in dedicated worker compute
-- Documented here so we don't reconsider without a strong reason. Tier A
-  delivers most of the value at <1% of the cost.
+### Full continuous YouTube crawl (Tier C)
+- viewstats Pro moat; not feasible for us. Tier A is the right balance.
 
 ---
 
 ## Recently shipped (last 30 days)
 
-- [x] Rate limiting infrastructure (wired into 3 YouTube-API routes; no-op
-      until Upstash env vars set)
-- [x] Mobile UX pass round 1 — hamburger menu, horizontal-scroll tracking
-      tabs, 44pt tap targets, hover-only buttons made tap-friendly,
-      Sign Out moved into profile dropdown
-- [x] Outlier scoring for personal channel videos
-- [x] Outlier scoring for competitor channel videos
-- [x] Dedicated `/tracking/outliers` page with filters and recompute
-- [x] "Top 5 by views" + "Top 5 outliers" side-by-side on competitor detail
-- [x] Outlier badges on every video card across the app
-- [x] Global "Hide Shorts" preference in profile menu
-- [x] Refresh all competitors button + per-channel refresh
-- [x] Thumbnail text search (CLIP-based)
-- [x] Per-thumbnail "Embed pending" indexing flow
-- [x] Background auto-indexing (no more manual button — `ThumbnailIndexBanner`)
-- [x] Image upload search (`/api/thumbnails/search-image`)
-- [x] Find similar to a video (`/api/thumbnails/search-similar`)
-- [x] Find similar action on outlier cards (deep-links to thumbnails page)
-- [x] Auto-recompute outlier scores after sync + after daily cron
+- [x] **Discover tab (Tier A)** — trending browse, user region/category prefs, manual sync, search integration (`source = discovered`)
+- [x] Rate limiting (Upstash) — production + local
+- [x] Mobile UX pass round 1
+- [x] Outlier scoring (personal + competitor)
+- [x] Thumbnail search (text, image upload, find similar)
+- [x] Auto-indexing banner
+- [x] Hide Shorts preference
+- [x] Refresh all competitors
+- [x] Daily metrics cron (user confirmed)
+
+---
+
+## One-time setup after Discover deploy
+
+1. **Run migration** `20260525000005_discover_tab.sql` in Supabase SQL Editor (if not via CLI).
+2. **Deploy** edge function `discover-trending-cron` (Supabase → Edge Functions → paste from repo).
+3. **Optional cron** for nightly trending fetch (see "Discover nightly cron" above).
+4. On site: open **Discover → Refresh trending now** once to populate data.
+5. Auto-index banner will embed new thumbnails for search (may take a few minutes).

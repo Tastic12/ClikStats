@@ -13,7 +13,7 @@
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
-type LimiterId = 'sync-videos' | 'competitors-init' | 'competitors-refresh'
+type LimiterId = 'sync-videos' | 'competitors-init' | 'competitors-refresh' | 'discover-sync'
 
 type LimiterSpec = {
   /** Tokens per window — short burst guard. */
@@ -26,6 +26,7 @@ const LIMITS: Record<LimiterId, LimiterSpec> = {
   'sync-videos': { perMinute: 5, perDay: 30 },
   'competitors-init': { perMinute: 10, perDay: 50 },
   'competitors-refresh': { perMinute: 3, perDay: 20 },
+  'discover-sync': { perMinute: 2, perDay: 10 },
 }
 
 let warnedAboutMissingEnv = false

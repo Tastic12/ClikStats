@@ -11,6 +11,7 @@ import type {
   CompetitorChannelVideo,
   CompetitorVideo,
   CompetitorVideoGroup,
+  DiscoveredVideo,
 } from './supabase'
 import { parseChannelInput } from './youtube-channel'
 
@@ -537,7 +538,7 @@ export type ThumbnailSearchResult = {
   published_at: string | null
   outlier_score: number | null
   is_short: boolean | null
-  source: 'own' | 'competitor' | 'unknown'
+  source: 'own' | 'competitor' | 'discovered' | 'unknown'
 }
 
 /**
@@ -641,6 +642,75 @@ export function initCompetitorVideo(videoUrl: string, groupId?: string | null) {
   const body: Record<string, string> = { video_url: videoUrl.trim() }
   if (groupId) body.group_id = groupId
   return postAuthedApi('/api/competitors/videos/init', body)
+}
+
+export type DiscoverSettings = {
+  region_code: string
+  category_ids: number[]
+}
+
+export function useDiscoverVideos(categoryId?: number | null) {
+  const key = categoryId ? `discover-videos-${categoryId}` : 'discover-videos-all'
+  const { data, error, mutate } = useSWR(key, async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('Not authenticated')
+    const params = new URLSearchParams({ limit: '48' })
+    if (categoryId) params.set('category_id', String(categoryId))
+    const response = await fetch(`/api/discover/videos?${params}`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    const json = await response.json()
+    if (!response.ok) throw new Error(json.error || 'Failed to load discover videos')
+    return json as {
+      videos: DiscoveredVideo[]
+      region_code: string
+      category_ids: number[]
+    }
+  })
+  return {
+    videos: data?.videos,
+    regionCode: data?.region_code,
+    categoryIds: data?.category_ids,
+    isLoading: !error && !data,
+    isError: error,
+    mutate,
+  }
+}
+
+export async function fetchDiscoverSettings(): Promise<DiscoverSettings> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not authenticated')
+  const response = await fetch('/api/discover/settings', {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  })
+  const json = await response.json()
+  if (!response.ok) throw new Error(json.error || 'Failed to load settings')
+  return json as DiscoverSettings
+}
+
+export async function saveDiscoverSettings(settings: DiscoverSettings) {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not authenticated')
+  const response = await fetch('/api/discover/settings', {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(settings),
+  })
+  const json = await response.json()
+  if (!response.ok) throw new Error(json.error || 'Failed to save settings')
+  return json
+}
+
+export async function syncDiscoverTrending() {
+  return postAuthedApi('/api/discover/sync', {}) as Promise<{
+    saved: number
+    fetched: number
+    api_calls: number
+    errors?: string[]
+  }>
 }
 
 // Utility function to extract YouTube video ID from URL

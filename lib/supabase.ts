@@ -159,6 +159,31 @@ export interface CompetitorVideo {
   updated_at: string
 }
 
+export interface DiscoveredVideo {
+  id: string
+  video_id: string
+  title: string
+  thumbnail_url: string
+  channel_id?: string | null
+  channel_name?: string | null
+  category_id: number
+  region_code: string
+  published_at?: string | null
+  duration?: string | null
+  view_count?: number
+  like_count?: number
+  is_short?: boolean | null
+  discovered_at: string
+  last_seen_at: string
+}
+
+export interface UserDiscoverSettings {
+  user_id: string
+  region_code: string
+  category_ids: number[]
+  updated_at: string
+}
+
 export type Database = {
   public: {
     Tables: {

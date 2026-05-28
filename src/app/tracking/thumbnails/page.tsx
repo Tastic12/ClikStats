@@ -397,10 +397,18 @@ function ThumbnailSearchCard({
           {result.source && result.source !== 'unknown' && (
             <span
               className={`absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] font-semibold text-white ${
-                result.source === 'own' ? 'bg-[var(--accent)]' : 'bg-zinc-700/90'
+                result.source === 'own'
+                  ? 'bg-[var(--accent)]'
+                  : result.source === 'discovered'
+                    ? 'bg-violet-600/90'
+                    : 'bg-zinc-700/90'
               }`}
             >
-              {result.source === 'own' ? 'You' : 'Competitor'}
+              {result.source === 'own'
+                ? 'You'
+                : result.source === 'discovered'
+                  ? 'Trending'
+                  : 'Competitor'}
             </span>
           )}
         </div>
