@@ -12,7 +12,7 @@ type CompetitorVideosCompareProps = {
 }
 
 export function CompetitorVideosCompare({ videos, viewMode }: CompetitorVideosCompareProps) {
-  const [sideBySide, setSideBySide] = useState(false)
+  const [sideBySide, setSideBySide] = useState(true)
 
   if (videos.length < 2) return null
 

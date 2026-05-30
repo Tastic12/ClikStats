@@ -20,7 +20,7 @@ export function CompetitorCompare({
   viewMode,
   leadingChannel,
 }: CompetitorCompareProps) {
-  const [sideBySide, setSideBySide] = useState(false)
+  const [sideBySide, setSideBySide] = useState(true)
 
   if (channels.length === 0) return null
 
