@@ -270,32 +270,78 @@ function ComparisonBarChart({
   )
 }
 
-export function ChannelSnapshotComparisonChart({ channels }: { channels: CompetitorChannel[] }) {
-  const data = channels.map((ch) => ({
-    name:
-      ch.channel_name.length > 14 ? ch.channel_name.slice(0, 14) + '…' : ch.channel_name,
-    Subscribers: ch.subscriber_count || 0,
-    'Total views': ch.view_count || 0,
-  }))
+export function ChannelComparisonTable({ channels }: { channels: CompetitorChannel[] }) {
+  if (!channels.length) return null
 
-  if (!data.length) return null
+  const sorted = [...channels].sort(
+    (a, b) => (b.subscriber_count || 0) - (a.subscriber_count || 0)
+  )
 
   return (
-    <div className="space-y-6">
-      <ComparisonBarChart
-        data={data}
-        dataKey="Subscribers"
-        label="Subscribers by channel"
-        color="#a78bfa"
-      />
-      <ComparisonBarChart
-        data={data}
-        dataKey="Total views"
-        label="Total channel views"
-        color="#7c3aed"
-      />
+    <div className="overflow-x-auto rounded-lg ring-1 ring-[var(--border)]">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-[var(--border)] bg-[var(--elevated)]/50 text-left">
+            <th className="px-3 py-2 text-xs font-medium text-[var(--muted)]">Channel</th>
+            <th className="px-3 py-2 text-xs font-medium text-[var(--muted)] text-right">
+              Subscribers
+            </th>
+            <th className="px-3 py-2 text-xs font-medium text-[var(--muted)] text-right">
+              Total views
+            </th>
+            <th className="px-3 py-2 text-xs font-medium text-[var(--muted)] text-right">Videos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((ch, i) => (
+            <tr key={ch.id} className="border-b border-[var(--border)] last:border-0">
+              <td className="px-3 py-2.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  {i === 0 && (
+                    <span className="shrink-0 text-[10px] font-semibold uppercase text-[var(--success)]">
+                      Lead
+                    </span>
+                  )}
+                  {ch.thumbnail_url && (
+                    <img
+                      src={ch.thumbnail_url}
+                      alt=""
+                      className="h-8 w-8 shrink-0 rounded-full object-cover"
+                    />
+                  )}
+                  <a
+                    href={ch.channel_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-[var(--foreground)] hover:text-[var(--accent)] truncate"
+                  >
+                    {ch.channel_name}
+                  </a>
+                </div>
+              </td>
+              <td className="px-3 py-2.5 text-right tabular-nums text-[var(--foreground)]">
+                {formatCompact(ch.subscriber_count || 0)}
+              </td>
+              <td className="px-3 py-2.5 text-right tabular-nums text-[var(--muted-2)]">
+                {formatCompact(ch.view_count || 0)}
+              </td>
+              <td className="px-3 py-2.5 text-right tabular-nums text-[var(--muted-2)]">
+                {formatCompact(ch.video_count || 0)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="px-3 py-2 text-[10px] text-[var(--muted-2)] border-t border-[var(--border)]">
+        Snapshot totals from YouTube — not growth over time.
+      </p>
     </div>
   )
+}
+
+/** @deprecated Use ChannelComparisonTable — bar charts were confusing in user testing */
+export function ChannelSnapshotComparisonChart({ channels }: { channels: CompetitorChannel[] }) {
+  return <ChannelComparisonTable channels={channels} />
 }
 
 /** Side-by-side competitor videos: one bar chart per metric with its own scale */

@@ -91,15 +91,26 @@ export async function embedImageFromUrl(url: string): Promise<number[]> {
 
 /**
  * Embed an image already in memory (e.g. an uploaded File buffer) into the
- * same 512-d space. RawImage.read accepts a Blob, so we wrap the buffer.
+ * same 512-d space. Prefer Uint8Array + data URL — more reliable on Vercel
+ * than Blob/fromBlob in some Node runtimes.
  */
 export async function embedImageFromBuffer(
   buffer: ArrayBuffer | Uint8Array,
   mimeType = 'image/jpeg'
 ): Promise<number[]> {
   const { processor, model } = await getVisionBundle()
-  const blob = new Blob([buffer as BlobPart], { type: mimeType })
-  const image = await RawImage.fromBlob(blob)
+  const bytes = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer
+
+  let image
+  try {
+    // Data URL path works consistently in serverless Node.
+    const b64 = Buffer.from(bytes).toString('base64')
+    image = await RawImage.fromURL(`data:${mimeType};base64,${b64}`)
+  } catch {
+    const blob = new Blob([bytes as BlobPart], { type: mimeType })
+    image = await RawImage.fromBlob(blob)
+  }
+
   const inputs = await processor(image)
   const { image_embeds } = (await model(inputs)) as {
     image_embeds: { tolist: () => number[][] }

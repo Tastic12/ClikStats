@@ -9,7 +9,7 @@ export const maxDuration = 120
 
 type BulkResult = {
   input: string
-  status: 'ok' | 'error' | 'skipped'
+  status: 'ok' | 'updated' | 'error' | 'skipped'
   channelName?: string
   error?: string
 }
@@ -75,24 +75,34 @@ export async function POST(request: Request) {
         )
         apiUnits += 1
 
+        const { data: existing } = await admin
+          .from('competitor_channels')
+          .select('id, group_id')
+          .eq('user_id', user.id)
+          .eq('youtube_channel_id', youtubeChannelId)
+          .maybeSingle()
+
+        const upsertPayload: Record<string, unknown> = {
+          user_id: user.id,
+          youtube_channel_id: youtubeChannelId,
+          channel_name: channel.snippet.title,
+          channel_url: channelUrl,
+          description: channel.snippet.description,
+          thumbnail_url:
+            channel.snippet.thumbnails.high?.url || channel.snippet.thumbnails.medium?.url,
+          subscriber_count: parseInt(channel.statistics.subscriberCount, 10) || 0,
+          video_count: parseInt(channel.statistics.videoCount, 10) || 0,
+          view_count: parseInt(channel.statistics.viewCount, 10) || 0,
+        }
+        if (groupId) {
+          upsertPayload.group_id = groupId
+        } else if (existing?.group_id) {
+          upsertPayload.group_id = existing.group_id
+        }
+
         const { data: record, error } = await admin
           .from('competitor_channels')
-          .upsert(
-            {
-              user_id: user.id,
-              youtube_channel_id: youtubeChannelId,
-              channel_name: channel.snippet.title,
-              channel_url: channelUrl,
-              description: channel.snippet.description,
-              thumbnail_url:
-                channel.snippet.thumbnails.high?.url || channel.snippet.thumbnails.medium?.url,
-              subscriber_count: parseInt(channel.statistics.subscriberCount, 10) || 0,
-              video_count: parseInt(channel.statistics.videoCount, 10) || 0,
-              view_count: parseInt(channel.statistics.viewCount, 10) || 0,
-              ...(groupId ? { group_id: groupId } : {}),
-            },
-            { onConflict: 'user_id,youtube_channel_id' }
-          )
+          .upsert(upsertPayload, { onConflict: 'user_id,youtube_channel_id' })
           .select()
           .single()
 
@@ -133,7 +143,7 @@ export async function POST(request: Request) {
 
         results.push({
           input: channelInput,
-          status: 'ok',
+          status: existing ? 'updated' : 'ok',
           channelName: channel.snippet.title,
         })
       } catch (err) {
@@ -156,9 +166,11 @@ export async function POST(request: Request) {
     })
 
     const ok = results.filter((r) => r.status === 'ok').length
+    const updated = results.filter((r) => r.status === 'updated').length
     return NextResponse.json({
       success: true,
       added: ok,
+      updated,
       total: results.length,
       results,
     })

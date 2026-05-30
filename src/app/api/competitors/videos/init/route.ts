@@ -40,12 +40,27 @@ export async function POST(request: Request) {
 
     const video = await fetchYouTubeVideo(videoId, youtubeApiKey)
 
+    const { data: existing } = await admin
+      .from('competitor_videos')
+      .select('id, group_id, title')
+      .eq('user_id', user.id)
+      .eq('youtube_video_id', videoId)
+      .maybeSingle()
+
+    const alreadyExists = !!existing
+    const upsertPayload: Record<string, unknown> = {
+      user_id: user.id,
+      ...video,
+    }
+    if (groupId) {
+      upsertPayload.group_id = groupId
+    } else if (existing?.group_id) {
+      upsertPayload.group_id = existing.group_id
+    }
+
     const { data: record, error } = await admin
       .from('competitor_videos')
-      .upsert(
-        { user_id: user.id, ...video, ...(groupId ? { group_id: groupId } : {}) },
-        { onConflict: 'user_id,youtube_video_id' }
-      )
+      .upsert(upsertPayload, { onConflict: 'user_id,youtube_video_id' })
       .select()
       .single()
 
@@ -53,7 +68,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to save competitor video' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, video: record })
+    return NextResponse.json({
+      success: true,
+      alreadyExists,
+      video: record,
+      message: alreadyExists
+        ? 'This video is already tracked — stats refreshed.'
+        : 'Video added.',
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })

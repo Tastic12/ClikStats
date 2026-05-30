@@ -13,6 +13,7 @@ import {
   initCompetitorChannel,
   refreshCompetitorChannels,
   bulkImportCompetitors,
+  updateCompetitorChannelGroup,
 } from '../../../../../lib/hooks'
 import { useShortsPreference } from '../../../../../lib/preferences'
 import { DashboardShell } from '../../../../components/DashboardShell'
@@ -20,6 +21,7 @@ import { TrackingLayout } from '../../../../components/TrackingLayout'
 import { CategoryTabs, ALL_CATEGORIES_ID } from '../../../../components/CategoryTabs'
 import { ItemTabs } from '../../../../components/ItemTabs'
 import { CompetitorCompare } from '../../../../components/CompetitorCompare'
+import { CompetitorCategorySelect } from '../../../../components/CompetitorCategorySelect'
 import { TrackingToolbar } from '../../../../components/TrackingToolbar'
 import { VideoResultsLayout } from '../../../../components/VideoResultsLayout'
 import type { ViewMode } from '../../../../components/ViewModeToggle'
@@ -29,7 +31,6 @@ import {
   type MetricFiltersState,
 } from '../../../../components/MetricFilters'
 import { formatCount } from '@/lib/format'
-import { TopVideosChart } from '../../../../components/Charts'
 
 export default function CompetitorChannelsPage() {
   const router = useRouter()
@@ -46,6 +47,8 @@ export default function CompetitorChannelsPage() {
   const [bulkText, setBulkText] = useState('')
   const [bulkLoading, setBulkLoading] = useState(false)
   const [bulkMsg, setBulkMsg] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
+  const [movingId, setMovingId] = useState<string | null>(null)
 
   const { channels, isLoading, mutate } = useCompetitorChannels()
   const { groups, createGroup } = useCompetitorChannelGroups()
@@ -86,12 +89,14 @@ export default function CompetitorChannelsPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setSuccessMsg('')
     try {
       const groupForAdd =
         categoryId && categoryId !== ALL_CATEGORIES_ID ? categoryId : null
-      await initCompetitorChannel(url, groupForAdd)
+      const result = await initCompetitorChannel(url, groupForAdd)
       setUrl('')
       mutate()
+      setSuccessMsg(result.message || 'Channel saved.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add channel')
     } finally {
@@ -117,7 +122,11 @@ export default function CompetitorChannelsPage() {
       const result = await bulkImportCompetitors(lines, groupForAdd)
       setBulkText('')
       mutate()
-      setBulkMsg(`Added ${result.added} of ${result.total} channels.`)
+      const parts = [`Added ${result.added} new channel${result.added === 1 ? '' : 's'}.`]
+      if (result.updated > 0) {
+        parts.push(`${result.updated} already tracked (stats refreshed).`)
+      }
+      setBulkMsg(`${parts.join(' ')} (${result.total} URLs processed.)`)
     } catch (err) {
       setBulkMsg(err instanceof Error ? err.message : 'Bulk import failed.')
     } finally {
@@ -158,6 +167,21 @@ export default function CompetitorChannelsPage() {
       setRefreshing(false)
     }
   }
+
+  const handleMoveCategory = async (channelId: string, groupId: string | null) => {
+    setMovingId(channelId)
+    setError('')
+    try {
+      await updateCompetitorChannelGroup(channelId, groupId)
+      await mutate()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to move channel')
+    } finally {
+      setMovingId(null)
+    }
+  }
+
+  const categoryOptions = (groups || []).map((g) => ({ id: g.id, name: g.name }))
 
   const activeCategoryName =
     categoryId === ALL_CATEGORIES_ID
@@ -223,6 +247,9 @@ export default function CompetitorChannelsPage() {
               </button>
             </form>
             {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
+            {successMsg && (
+              <p className="mt-2 text-sm text-[var(--success)]">{successMsg}</p>
+            )}
             {refreshMsg && (
               <p className="mt-2 text-xs text-[var(--muted-2)]">{refreshMsg}</p>
             )}
@@ -278,6 +305,45 @@ export default function CompetitorChannelsPage() {
               />
 
               <div className="w-full pt-6 space-y-8">
+                {(channels?.length ?? 0) > 0 && (
+                  <section className="rounded-lg ring-1 ring-[var(--border)] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--elevated)]/40">
+                      <h3 className="text-sm font-semibold text-[var(--foreground)]">
+                        Organise channels
+                      </h3>
+                      <p className="text-xs text-[var(--muted)] mt-0.5">
+                        Move channels from Unsorted into a category using the dropdown.
+                      </p>
+                    </div>
+                    <ul className="divide-y divide-[var(--border)]">
+                      {(channels || []).map((ch) => (
+                        <li
+                          key={ch.id}
+                          className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {ch.thumbnail_url && (
+                              <img
+                                src={ch.thumbnail_url}
+                                alt=""
+                                className="h-8 w-8 rounded-full object-cover shrink-0"
+                              />
+                            )}
+                            <span className="text-sm font-medium truncate">{ch.channel_name}</span>
+                          </div>
+                          <CompetitorCategorySelect
+                            value={ch.group_id}
+                            categories={categoryOptions}
+                            disabled={movingId === ch.id}
+                            onChange={(gid) => handleMoveCategory(ch.id, gid)}
+                            className="sm:w-44"
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
                 <CompetitorCompare
                   channels={filtered}
                   videosByChannel={videosByChannel}
@@ -341,14 +407,6 @@ export default function CompetitorChannelsPage() {
                         <p className="text-[var(--muted)] text-sm">Loading videos…</p>
                       ) : channelVideos && channelVideos.length > 0 ? (
                         <>
-                          <div className="mb-5 max-w-3xl">
-                            <TopVideosChart
-                              videos={channelVideos.map((v) => ({
-                                title: v.title,
-                                view_count: v.view_count,
-                              }))}
-                            />
-                          </div>
                           {(() => {
                             const mapVideo = (v: typeof channelVideos[number]) => ({
                               id: v.id,

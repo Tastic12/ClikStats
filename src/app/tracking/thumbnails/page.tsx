@@ -9,7 +9,9 @@ import {
   searchThumbnailsByImage,
   searchSimilarToVideo,
   embedThumbnailBatch,
+  fetchThumbnailIndexStats,
   type ThumbnailSearchResult,
+  type ThumbnailIndexStat,
 } from '../../../../lib/hooks'
 import { useShortsPreference } from '../../../../lib/preferences'
 import { DashboardShell } from '../../../components/DashboardShell'
@@ -62,6 +64,28 @@ function ThumbnailSearchPageInner() {
   const [indexMsg, setIndexMsg] = useState('')
   const [processedTotal, setProcessedTotal] = useState(0)
   const indexShouldStop = useRef(false)
+  const [indexStats, setIndexStats] = useState<{
+    bySource: ThumbnailIndexStat[]
+    totals: { total: number; indexed: number; pending: number }
+  } | null>(null)
+  const [statsLoading, setStatsLoading] = useState(true)
+
+  const loadIndexStats = async () => {
+    setStatsLoading(true)
+    try {
+      const stats = await fetchThumbnailIndexStats()
+      setIndexStats(stats)
+    } catch {
+      setIndexStats(null)
+    } finally {
+      setStatsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!user) return
+    loadIndexStats()
+  }, [user])
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user: u } }) => {
@@ -177,6 +201,7 @@ function ThumbnailSearchPageInner() {
       if (indexShouldStop.current) {
         setIndexMsg(`Stopped. ${processedTotal > 0 ? `Embedded ${processedTotal} thumbnails so far.` : ''}`)
       }
+      await loadIndexStats()
     } catch (err) {
       setIndexMsg(err instanceof Error ? err.message : 'Indexing failed.')
     } finally {
@@ -211,11 +236,9 @@ function ThumbnailSearchPageInner() {
               What is thumbnail search?
             </h2>
             <p className="text-xs text-[var(--muted)] max-w-3xl">
-              Search the thumbnails you&apos;re tracking by what they{' '}
-              <strong>look like</strong>, not by the words in their title. Type a description
-              (&quot;red arrow money face&quot;) and we&apos;ll find the visually closest thumbnails
-              across your own videos and every competitor you track, sorted by similarity. Powered
-              by OpenAI&apos;s CLIP model running locally on the server.
+              Search thumbnails from <strong>your channel</strong>, <strong>competitors</strong>, and{' '}
+              <strong>Discover trending</strong> — but only after they&apos;ve been indexed (see
+              counts below). Results are sorted by visual similarity, not title keywords.
             </p>
           </section>
 
@@ -275,17 +298,65 @@ function ThumbnailSearchPageInner() {
             )}
           </section>
 
-          {/* Admin: indexing controls */}
-          <section className="rounded-lg bg-[var(--elevated)]/40 ring-1 ring-[var(--border)] p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+          {/* Index status + embedding controls */}
+          <section className="rounded-lg bg-[var(--elevated)]/40 ring-1 ring-[var(--border)] p-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-[var(--foreground)] mb-1">
+                Searchable index
+              </h3>
+              <p className="text-xs text-[var(--muted)]">
+                Search only matches indexed thumbnails. Competitors and trending are indexed first.
+              </p>
+            </div>
+
+            {statsLoading ? (
+              <p className="text-xs text-[var(--muted-2)]">Loading index stats…</p>
+            ) : indexStats ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <IndexStatCard
+                  label="Total indexed"
+                  value={indexStats.totals.indexed}
+                  sub={`${indexStats.totals.pending} still pending`}
+                  highlight
+                />
+                {(['competitor', 'discovered', 'own'] as const).map((src) => {
+                  const row = indexStats.bySource.find((r) => r.source === src)
+                  const label =
+                    src === 'own' ? 'Your videos' : src === 'competitor' ? 'Competitors' : 'Trending'
+                  return (
+                    <IndexStatCard
+                      key={src}
+                      label={label}
+                      value={row?.indexed ?? 0}
+                      sub={
+                        row
+                          ? `${row.pending} pending · ${row.total} tracked`
+                          : 'None tracked yet'
+                      }
+                    />
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-[var(--muted-2)]">
+                Index stats unavailable — run migration{' '}
+                <code className="text-[10px]">20260528000001_customer_feedback_fixes.sql</code> in
+                Supabase.
+              </p>
+            )}
+
+            {indexStats && indexStats.totals.pending > 0 && (
+              <p className="text-xs text-amber-600/90 dark:text-amber-400/90">
+                {indexStats.totals.pending} thumbnail
+                {indexStats.totals.pending === 1 ? '' : 's'} still indexing — search may skew toward
+                what&apos;s already embedded (often your own uploads).
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-start justify-between gap-3 pt-2 border-t border-[var(--border)]">
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-semibold text-[var(--foreground)] mb-1">
-                  Index your thumbnails
-                </h3>
                 <p className="text-xs text-[var(--muted)]">
-                  Before search works, each thumbnail needs to be converted to a vector and stored
-                  once. Click the button below and we&apos;ll work through everything in batches of
-                  25. Safe to leave running — you can stop and resume anytime.
+                  Click below to embed pending thumbnails in batches of 25. Safe to stop and resume.
                 </p>
                 {indexMsg && (
                   <p className="mt-2 text-xs text-[var(--muted-2)]">{indexMsg}</p>
@@ -296,7 +367,7 @@ function ThumbnailSearchPageInner() {
                   <button
                     type="button"
                     onClick={runIndexLoop}
-                    className="cs-btn-primary px-3 py-1.5 text-xs"
+                    className="cs-btn-primary px-3 py-1.5 text-xs min-h-11"
                   >
                     Embed pending thumbnails
                   </button>
@@ -304,7 +375,7 @@ function ThumbnailSearchPageInner() {
                   <button
                     type="button"
                     onClick={stopIndexing}
-                    className="cs-input px-3 py-1.5 text-xs hover:bg-[var(--card)]"
+                    className="cs-input px-3 py-1.5 text-xs hover:bg-[var(--card)] min-h-11"
                   >
                     Stop
                   </button>
@@ -335,7 +406,7 @@ function ThumbnailSearchPageInner() {
                     <p className="text-xs text-[var(--muted)] mb-3">
                       {visibleResults.length > 0
                         ? `${visibleResults.length} match${visibleResults.length === 1 ? '' : 'es'} ${contextLabel}`
-                        : `No matches ${contextLabel} — you may need to embed more thumbnails first.`}
+                        : `No matches ${contextLabel}${indexStats && indexStats.totals.indexed === 0 ? ' — embed pending thumbnails first' : indexStats && indexStats.totals.pending > 0 ? ' — more sources may appear after indexing finishes' : ''}.`}
                       {hiddenCount > 0 && (
                         <span className="text-[var(--muted-2)]">
                           {' '}
@@ -362,6 +433,30 @@ function ThumbnailSearchPageInner() {
         </div>
       </TrackingLayout>
     </DashboardShell>
+  )
+}
+
+function IndexStatCard({
+  label,
+  value,
+  sub,
+  highlight,
+}: {
+  label: string
+  value: number
+  sub: string
+  highlight?: boolean
+}) {
+  return (
+    <div
+      className={`rounded-md px-3 py-2 ring-1 ring-[var(--border)] ${
+        highlight ? 'bg-[var(--accent)]/10' : 'bg-[var(--card)]/40'
+      }`}
+    >
+      <p className="text-[10px] uppercase tracking-wide text-[var(--muted-2)]">{label}</p>
+      <p className="text-xl font-semibold text-[var(--foreground)] tabular-nums">{value}</p>
+      <p className="text-[10px] text-[var(--muted)]">{sub}</p>
+    </div>
   )
 }
 

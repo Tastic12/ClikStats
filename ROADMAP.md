@@ -1,6 +1,6 @@
 # ClikStats Roadmap
 
-**Last reviewed:** 2026-05-25
+**Last reviewed:** 2026-05-28
 
 > New chat: *"Read `ROADMAP.md` and let's work on [item]."*
 
@@ -8,8 +8,9 @@
 
 ## Done recently
 
+- [x] **Customer feedback batch (2026-05-28)** — move channels/videos to categories, Shorts v2 logic, thumbnail index dashboard, image search fixes, duplicate-add messaging, competitor list-first view, comparison tables instead of bar charts
 - [x] Discover tab (Tier A) — trending browse + thumbnail search integration
-- [x] **Portrait thumbnail Short detection** — 9:16 vs 16:9 from YouTube API dimensions (duration fallback)
+- [x] **Portrait thumbnail Short detection** — now combined with duration (3 min cap) in migration `20260528000001`
 - [x] **Bulk competitor import** — paste up to 50 URLs on Competitor channels page
 - [x] **Time-aware outliers** — `outlier_velocity_score` (views/day vs channel norm)
 - [x] **Niche-aware outliers** — `niche_outlier_score` vs tracked competitors (+ optional category)
@@ -20,11 +21,19 @@
 
 ## Setup still required (one-time)
 
+### Migration `20260528000001_customer_feedback_fixes.sql`
+Run in Supabase SQL Editor after deploy. Updates:
+- `classify_as_short` — portrait + duration rules (vertical long-form ≥3 min stays visible)
+- `thumbnail_index_stats` RPC — index counts by source on Thumbnail search page
+- Embed queue priority — competitors → trending → own uploads
+
+Then re-sync if Hide Shorts still looks wrong:
+1. **Discover → Refresh trending**
+2. **My videos → Sync all from YouTube**
+3. **Competitors → Refresh all**
+
 ### Migration `20260525000006_thumbnail_shorts_and_outliers.sql`
-Run in Supabase SQL Editor after deploy. Then:
-1. **Discover → Refresh trending** again (stores thumbnail width/height)
-2. **My videos → Sync all from YouTube** (re-classifies your library)
-3. **Competitors → Refresh all** (re-classifies competitor videos)
+(If not already run.) See prior notes in git history.
 
 ### Admin access
 Set `ADMIN_EMAILS=your@email.com` in `.env.local` and Vercel, redeploy. Visit `/admin`.
@@ -56,4 +65,4 @@ Not planned — too expensive. Tier A is the ceiling for us.
 
 ## Recently shipped (reference)
 
-Outliers, Hide Shorts, auto-indexing, image/similar thumbnail search, competitor refresh, etc.
+Outliers, Hide Shorts, auto-indexing, image/similar thumbnail search, competitor refresh, category move dropdowns, etc.

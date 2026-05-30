@@ -51,24 +51,35 @@ export async function POST(request: Request) {
       youtubeApiKey
     )
 
+    const { data: existing } = await admin
+      .from('competitor_channels')
+      .select('id, group_id, channel_name')
+      .eq('user_id', user.id)
+      .eq('youtube_channel_id', youtubeChannelId)
+      .maybeSingle()
+
+    const alreadyExists = !!existing
+    const upsertPayload: Record<string, unknown> = {
+      user_id: user.id,
+      youtube_channel_id: youtubeChannelId,
+      channel_name: channel.snippet.title,
+      channel_url: channelUrl,
+      description: channel.snippet.description,
+      thumbnail_url:
+        channel.snippet.thumbnails.high?.url || channel.snippet.thumbnails.medium?.url,
+      subscriber_count: parseInt(channel.statistics.subscriberCount, 10) || 0,
+      video_count: parseInt(channel.statistics.videoCount, 10) || 0,
+      view_count: parseInt(channel.statistics.viewCount, 10) || 0,
+    }
+    if (groupId) {
+      upsertPayload.group_id = groupId
+    } else if (existing?.group_id) {
+      upsertPayload.group_id = existing.group_id
+    }
+
     const { data: record, error } = await admin
       .from('competitor_channels')
-      .upsert(
-        {
-          user_id: user.id,
-          youtube_channel_id: youtubeChannelId,
-          channel_name: channel.snippet.title,
-          channel_url: channelUrl,
-          description: channel.snippet.description,
-          thumbnail_url:
-            channel.snippet.thumbnails.high?.url || channel.snippet.thumbnails.medium?.url,
-          subscriber_count: parseInt(channel.statistics.subscriberCount, 10) || 0,
-          video_count: parseInt(channel.statistics.videoCount, 10) || 0,
-          view_count: parseInt(channel.statistics.viewCount, 10) || 0,
-          ...(groupId ? { group_id: groupId } : {}),
-        },
-        { onConflict: 'user_id,youtube_channel_id' }
-      )
+      .upsert(upsertPayload, { onConflict: 'user_id,youtube_channel_id' })
       .select()
       .single()
 
@@ -120,7 +131,14 @@ export async function POST(request: Request) {
       await admin.rpc('recompute_niche_outlier_scores', { user_uuid: user.id })
     }
 
-    return NextResponse.json({ success: true, channel: record })
+    return NextResponse.json({
+      success: true,
+      alreadyExists,
+      channel: record,
+      message: alreadyExists
+        ? `${channel.snippet.title} is already in your list — stats refreshed.`
+        : `${channel.snippet.title} added.`,
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })

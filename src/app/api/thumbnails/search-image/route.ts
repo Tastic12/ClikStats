@@ -51,7 +51,45 @@ export async function POST(request: Request) {
     }
 
     const buffer = await file.arrayBuffer()
-    const vec = await embedImageFromBuffer(buffer, file.type)
+    if (!buffer.byteLength) {
+      return NextResponse.json({ error: 'Uploaded image is empty.' }, { status: 400 })
+    }
+
+    let vec: number[]
+    try {
+      vec = await embedImageFromBuffer(buffer, file.type || 'image/jpeg')
+    } catch (embedErr) {
+      const detail = embedErr instanceof Error ? embedErr.message : 'Unknown error'
+      console.error('embedImageFromBuffer failed:', detail)
+      return NextResponse.json(
+        {
+          error:
+            'Could not process that image. Try a JPG or PNG under 8 MB. If text search works, run "Embed pending thumbnails" first — image search only matches indexed thumbnails.',
+          detail,
+        },
+        { status: 422 }
+      )
+    }
+
+    const { data: stats, error: statsError } = await admin.rpc('thumbnail_index_stats', {
+      user_uuid: user.id,
+    })
+    if (!statsError) {
+      const indexedTotal = ((stats || []) as Array<{ indexed: number }>).reduce(
+        (sum, row) => sum + Number(row.indexed),
+        0
+      )
+      if (indexedTotal === 0) {
+        return NextResponse.json(
+          {
+            error:
+              'No thumbnails indexed yet. Open Thumbnail search and click "Embed pending thumbnails" (or wait for auto-indexing) before searching by image.',
+            results: [],
+          },
+          { status: 422 }
+        )
+      }
+    }
 
     const { data, error } = await admin.rpc('search_thumbnails', {
       user_uuid: user.id,

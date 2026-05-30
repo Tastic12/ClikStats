@@ -523,10 +523,51 @@ async function postAuthedApi(path: string, body: Record<string, string>) {
   return result
 }
 
+async function patchAuthedApi(path: string, body: Record<string, string | null>) {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not authenticated')
+
+  const response = await fetch(path, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify(body),
+  })
+
+  const text = await response.text()
+  let result: { error?: string }
+  try {
+    result = text ? JSON.parse(text) : {}
+  } catch {
+    throw new Error(`Server error (${response.status})`)
+  }
+  if (!response.ok) throw new Error(result.error || 'Request failed')
+  return result
+}
+
 export function initCompetitorChannel(channelUrl: string, groupId?: string | null) {
   const body: Record<string, string> = { channel_url: channelUrl.trim() }
   if (groupId) body.group_id = groupId
-  return postAuthedApi('/api/competitors/channels/init', body)
+  return postAuthedApi('/api/competitors/channels/init', body) as Promise<{
+    alreadyExists?: boolean
+    message?: string
+  }>
+}
+
+export function updateCompetitorChannelGroup(channelId: string, groupId: string | null) {
+  return patchAuthedApi('/api/competitors/channels/group', {
+    channel_id: channelId,
+    group_id: groupId,
+  })
+}
+
+export function updateCompetitorVideoGroup(videoId: string, groupId: string | null) {
+  return patchAuthedApi('/api/competitors/videos/group', {
+    video_id: videoId,
+    group_id: groupId,
+  })
 }
 
 export type ThumbnailSearchResult = {
@@ -583,6 +624,30 @@ export async function fetchPendingThumbnailCount(): Promise<number> {
   return json.count ?? 0
 }
 
+export type ThumbnailIndexStat = {
+  source: 'own' | 'competitor' | 'discovered'
+  total: number
+  indexed: number
+  pending: number
+}
+
+export async function fetchThumbnailIndexStats(): Promise<{
+  bySource: ThumbnailIndexStat[]
+  totals: { total: number; indexed: number; pending: number }
+}> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not authenticated')
+  const response = await fetch('/api/thumbnails/index-stats', {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  })
+  const json = await response.json()
+  if (!response.ok) throw new Error(json.error || 'Failed to load index stats')
+  return json as {
+    bySource: ThumbnailIndexStat[]
+    totals: { total: number; indexed: number; pending: number }
+  }
+}
+
 /** Image-based variant of search: upload a JPG/PNG, get visually similar matches. */
 export async function searchThumbnailsByImage(
   file: File,
@@ -601,13 +666,17 @@ export async function searchThumbnailsByImage(
     body: form,
   })
   const text = await response.text()
-  let json: { results?: ThumbnailSearchResult[]; error?: string }
+  let json: { results?: ThumbnailSearchResult[]; error?: string; detail?: string }
   try {
     json = text ? JSON.parse(text) : {}
   } catch {
     throw new Error(`Server error (${response.status})`)
   }
-  if (!response.ok) throw new Error(json.error || 'Image search failed')
+  if (!response.ok) {
+    const msg = json.error || 'Image search failed'
+    const detail = json.detail ? ` (${json.detail})` : ''
+    throw new Error(`${msg}${detail}`)
+  }
   return json.results || []
 }
 
@@ -641,7 +710,10 @@ export async function refreshCompetitorChannels(channelId?: string) {
 export function initCompetitorVideo(videoUrl: string, groupId?: string | null) {
   const body: Record<string, string> = { video_url: videoUrl.trim() }
   if (groupId) body.group_id = groupId
-  return postAuthedApi('/api/competitors/videos/init', body)
+  return postAuthedApi('/api/competitors/videos/init', body) as Promise<{
+    alreadyExists?: boolean
+    message?: string
+  }>
 }
 
 export type DiscoverSettings = {
@@ -738,6 +810,7 @@ export async function bulkImportCompetitors(channelUrls: string[], groupId?: str
   if (!response.ok) throw new Error(json.error || 'Bulk import failed')
   return json as {
     added: number
+    updated: number
     total: number
     results: Array<{ input: string; status: string; channelName?: string; error?: string }>
   }

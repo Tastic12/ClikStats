@@ -8,12 +8,14 @@ import {
   useCompetitorVideos,
   useCompetitorVideoGroups,
   initCompetitorVideo,
+  updateCompetitorVideoGroup,
 } from '../../../../../lib/hooks'
 import { DashboardShell } from '../../../../components/DashboardShell'
 import { TrackingLayout } from '../../../../components/TrackingLayout'
 import { CategoryTabs, ALL_CATEGORIES_ID } from '../../../../components/CategoryTabs'
 import { ItemTabs } from '../../../../components/ItemTabs'
 import { CompetitorVideosCompare } from '../../../../components/CompetitorVideosCompare'
+import { CompetitorCategorySelect } from '../../../../components/CompetitorCategorySelect'
 import { TrackingToolbar } from '../../../../components/TrackingToolbar'
 import { VideoThumbnailLink } from '../../../../components/VideoThumbnailLink'
 import type { ViewMode } from '../../../../components/ViewModeToggle'
@@ -34,6 +36,8 @@ export default function CompetitorVideosPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [categoryId, setCategoryId] = useState<string | null>(ALL_CATEGORIES_ID)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [successMsg, setSuccessMsg] = useState('')
+  const [movingId, setMovingId] = useState<string | null>(null)
 
   const { videos, isLoading, mutate } = useCompetitorVideos()
   const { groups, createGroup } = useCompetitorVideoGroups()
@@ -69,18 +73,35 @@ export default function CompetitorVideosPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setSuccessMsg('')
     try {
       const groupForAdd =
         categoryId && categoryId !== ALL_CATEGORIES_ID ? categoryId : null
-      await initCompetitorVideo(url, groupForAdd)
+      const result = await initCompetitorVideo(url, groupForAdd)
       setUrl('')
       mutate()
+      setSuccessMsg(result.message || 'Video saved.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add video')
     } finally {
       setLoading(false)
     }
   }
+
+  const handleMoveCategory = async (videoRowId: string, groupId: string | null) => {
+    setMovingId(videoRowId)
+    setError('')
+    try {
+      await updateCompetitorVideoGroup(videoRowId, groupId)
+      await mutate()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to move video')
+    } finally {
+      setMovingId(null)
+    }
+  }
+
+  const categoryOptions = (groups || []).map((g) => ({ id: g.id, name: g.name }))
 
   const handleCreateCategory = async (name: string) => {
     const g = await createGroup(name)
@@ -140,6 +161,9 @@ export default function CompetitorVideosPage() {
               </button>
             </form>
             {error && <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>}
+            {successMsg && (
+              <p className="mt-2 text-sm text-[var(--success)]">{successMsg}</p>
+            )}
           </section>
 
           {isLoading ? (
@@ -166,6 +190,36 @@ export default function CompetitorVideosPage() {
               />
 
               <div className="w-full pt-6 space-y-8">
+                {(videos?.length ?? 0) > 0 && (
+                  <section className="rounded-lg ring-1 ring-[var(--border)] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--elevated)]/40">
+                      <h3 className="text-sm font-semibold text-[var(--foreground)]">
+                        Organise videos
+                      </h3>
+                      <p className="text-xs text-[var(--muted)] mt-0.5">
+                        Move tracked videos from Unsorted into a category.
+                      </p>
+                    </div>
+                    <ul className="divide-y divide-[var(--border)] max-h-64 overflow-y-auto">
+                      {(videos || []).map((v) => (
+                        <li
+                          key={v.id}
+                          className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3"
+                        >
+                          <span className="text-sm truncate flex-1 min-w-0">{v.title}</span>
+                          <CompetitorCategorySelect
+                            value={v.group_id}
+                            categories={categoryOptions}
+                            disabled={movingId === v.id}
+                            onChange={(gid) => handleMoveCategory(v.id, gid)}
+                            className="sm:w-44"
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
                 {filtered.length > 1 && (
                   <CompetitorVideosCompare videos={filtered} viewMode={viewMode} />
                 )}
