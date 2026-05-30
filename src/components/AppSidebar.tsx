@@ -9,6 +9,7 @@ type NavLink = { href: string; label: string; match?: (path: string) => boolean 
 type NavSection = {
   id: string
   label: string
+  hint?: string
   items: NavLink[]
   defaultOpen?: boolean
 }
@@ -17,6 +18,7 @@ const sections: NavSection[] = [
   {
     id: 'competitors',
     label: 'Competitors',
+    hint: 'Track rival channels and videos in folders by niche.',
     defaultOpen: true,
     items: [
       {
@@ -126,6 +128,9 @@ export function AppSidebar({
               {section.label}
               <span className="text-xs">{openSections[section.id] ? '−' : '+'}</span>
             </button>
+          )}
+          {!collapsed && openSections[section.id] && section.hint && (
+            <p className="px-3 pb-1 text-[10px] text-[var(--muted-2)] leading-snug">{section.hint}</p>
           )}
           {(collapsed || openSections[section.id]) && (
             <div className="flex flex-col gap-0.5 mt-0.5">

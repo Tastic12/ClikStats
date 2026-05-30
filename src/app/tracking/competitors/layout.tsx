@@ -13,14 +13,6 @@ export default function CompetitorsLayout({ children }: { children: React.ReactN
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">Competitors</h1>
-        <p className="mt-2 text-sm text-[var(--muted)] max-w-3xl">
-          Track rival channels and individual videos. Organise them into folders (categories) so
-          you can compare niches — music, gaming, news, and so on.
-        </p>
-      </header>
-
       <div className="border-b border-[var(--border)]">
         <nav className="-mb-px flex gap-1">
           {tabs.map((tab) => {
