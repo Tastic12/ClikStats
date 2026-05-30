@@ -349,13 +349,22 @@ export async function fetchYouTubeVideo(videoId: string, apiKey: string) {
   const item = data?.items?.[0]
   if (!item) throw new Error('Video not found')
 
-  const thumbs = item.snippet.thumbnails as { high?: { url: string }; medium?: { url: string } }
+  const thumbs = item.snippet.thumbnails as {
+    high?: { url: string; width?: number; height?: number }
+    medium?: { url: string; width?: number; height?: number }
+  }
+  const high = thumbs?.high
+  const medium = thumbs?.medium
+  const thumb = high || medium
   return {
     youtube_video_id: item.id as string,
     title: item.snippet.title as string,
     channel_name: item.snippet.channelTitle as string,
-    thumbnail_url: thumbs?.high?.url || thumbs?.medium?.url,
+    thumbnail_url: thumb?.url,
+    thumbnail_width: thumb?.width ?? null,
+    thumbnail_height: thumb?.height ?? null,
     published_at: item.snippet.publishedAt as string,
+    duration: item.contentDetails?.duration as string | undefined,
     view_count: parseInt(item.statistics.viewCount, 10) || 0,
     like_count: parseInt(item.statistics.likeCount, 10) || 0,
     comment_count: parseInt(item.statistics.commentCount, 10) || 0,

@@ -1,4 +1,5 @@
 import useSWR from 'swr'
+import { useMemo } from 'react'
 import { supabase } from './supabase'
 import type {
   Channel,
@@ -13,6 +14,7 @@ import type {
   CompetitorVideoGroup,
   DiscoveredVideo,
 } from './supabase'
+import { mergeOutlierItems, type UnifiedOutlierItem } from './outliers'
 import { parseChannelInput } from './youtube-channel'
 
 export function useUserProfile() {
@@ -497,6 +499,46 @@ export function useCompetitorVideos() {
     return data || []
   })
   return { videos: data, isLoading: !error && !data, isError: error, mutate }
+}
+
+export function useAllCompetitorChannelVideos() {
+  const { data, error, isLoading } = useSWR<CompetitorChannelVideo[]>(
+    'all-competitor-channel-videos',
+    async () => {
+      const { data, error } = await supabase
+        .from('competitor_channel_videos')
+        .select('*')
+        .order('outlier_score', { ascending: false, nullsFirst: false })
+      if (error) throw error
+      return data || []
+    }
+  )
+  return { videos: data, isLoading, isError: error }
+}
+
+/** Merged outlier feed: own uploads + competitor channel videos + standalone tracked videos. */
+export function useUnifiedOutlierFeed() {
+  const { channel, isLoading: channelLoading } = useOwnedChannel()
+  const { videos: ownVideos, isLoading: ownLoading } = useVideos(channel?.id)
+  const { channels, isLoading: channelsLoading } = useCompetitorChannels()
+  const { videos: ccVideos, isLoading: ccLoading } = useAllCompetitorChannelVideos()
+  const { videos: standalone, isLoading: standaloneLoading } = useCompetitorVideos()
+
+  const items = useMemo(
+    () =>
+      mergeOutlierItems({
+        ownVideos,
+        competitorChannelVideos: ccVideos,
+        competitorChannels: channels,
+        standaloneVideos: standalone,
+      }),
+    [ownVideos, ccVideos, channels, standalone]
+  )
+
+  const isLoading =
+    channelLoading || ownLoading || channelsLoading || ccLoading || standaloneLoading
+
+  return { items, isLoading } satisfies { items: UnifiedOutlierItem[]; isLoading: boolean }
 }
 
 async function postAuthedApi(path: string, body: Record<string, string>) {

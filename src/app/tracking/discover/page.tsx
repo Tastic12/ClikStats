@@ -115,21 +115,12 @@ export default function DiscoverPage() {
         router.push('/')
       }}
     >
-      <TrackingLayout>
+      <TrackingLayout
+        title="Discover"
+        description="Trending long-form videos in your chosen categories. Indexed thumbnails appear in Thumbnail search automatically."
+      >
         <div className="space-y-6 w-full">
-          <section className="pb-6 border-b border-[var(--border)]">
-            <h2 className="text-sm font-semibold text-[var(--foreground)] mb-1">
-              What is Discover?
-            </h2>
-            <p className="text-xs text-[var(--muted)] max-w-3xl">
-              Daily <strong>YouTube trending</strong> videos in the categories you care about.
-              Browse what&apos;s performing right now beyond the channels you track — and those
-              thumbnails are included in <strong>Thumbnail search</strong> automatically once
-              indexed.
-            </p>
-          </section>
-
-          <section className="flex flex-wrap items-center gap-2">
+          <section className="flex flex-wrap items-center gap-2 rounded-xl ring-1 ring-[var(--border)] p-4 bg-[var(--elevated)]/20">
             <button
               type="button"
               onClick={() => setSettingsOpen((v) => !v)}

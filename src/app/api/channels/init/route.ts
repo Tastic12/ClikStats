@@ -5,6 +5,7 @@ import {
   fetchYouTubeChannel,
   type ChannelVideoRecord,
 } from '../../../../../lib/youtube-channel'
+import { normalizePlan, canUseFeature } from '../../../../../lib/plans'
 
 export async function POST(request: Request) {
   try {
@@ -58,6 +59,29 @@ export async function POST(request: Request) {
 
     // One owned channel per user — replace any previous connection
     const { data: existing } = await admin.from('channels').select('id').eq('user_id', user.id)
+    const isChanging = (existing?.length ?? 0) > 0
+
+    if (isChanging) {
+      const unlockAll = process.env.UNLOCK_ALL_FEATURES !== 'false'
+      if (!unlockAll) {
+        const { data: profile } = await admin
+          .from('users')
+          .select('plan')
+          .eq('id', user.id)
+          .maybeSingle()
+        if (!canUseFeature(normalizePlan(profile?.plan), 'change_connected_channel')) {
+          return NextResponse.json(
+            {
+              error:
+                'Changing your connected channel requires a Pro plan. Upgrade to swap channels on this account.',
+              code: 'PLAN_REQUIRED',
+            },
+            { status: 403 }
+          )
+        }
+      }
+    }
+
     if (existing?.length) {
       const ids = existing.map((c) => c.id)
       await admin.from('videos').delete().in('channel_id', ids)

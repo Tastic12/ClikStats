@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { User as AuthUser } from '@supabase/supabase-js'
@@ -8,15 +8,14 @@ import { supabase } from '../../../lib/supabase'
 import {
   useOwnedChannel,
   useChannelMetrics,
-  useVideos,
-  getTopVideos,
-  getLatestVideo,
+  useUnifiedOutlierFeed,
+  useCompetitorChannels,
 } from '../../../lib/hooks'
+import { topOutliers } from '../../../lib/outliers'
 import { MetricCard } from '../../components/Charts'
 import { DashboardShell } from '../../components/DashboardShell'
 import { AddChannelForm } from '../../components/AddChannelForm'
-import { TopVideosList } from '../../components/TopVideosList'
-import { VideoThumbnailLink } from '../../components/VideoThumbnailLink'
+import { TopOutliersWidget } from '../../components/TopOutliersWidget'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -24,7 +23,10 @@ export default function DashboardPage() {
 
   const { channel, isLoading: channelsLoading, mutate: mutateChannels } = useOwnedChannel()
   const { metrics: channelMetrics } = useChannelMetrics(channel?.id)
-  const { videos, isLoading: videosLoading, mutate: mutateVideos } = useVideos(channel?.id)
+  const { channels: competitors } = useCompetitorChannels()
+  const { items: outlierItems, isLoading: outliersLoading } = useUnifiedOutlierFeed()
+
+  const topPerformers = useMemo(() => topOutliers(outlierItems, 5), [outlierItems])
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user: u } }) => {
@@ -51,8 +53,6 @@ export default function DashboardPage() {
     )
   }
 
-  const topVideos = getTopVideos(videos, 5)
-  const latestVideo = getLatestVideo(videos)
   const latestMetrics = channelMetrics?.[0]
   const previousMetrics = channelMetrics?.[1]
   const subscriberChange =
@@ -66,116 +66,111 @@ export default function DashboardPage() {
 
   return (
     <DashboardShell email={user.email} onSignOut={handleSignOut}>
-      <div className="w-full max-w-none space-y-0">
-        <header className="pb-8 border-b border-[var(--border)]">
-          <h1 className="text-3xl font-bold text-[var(--foreground)]">Dashboard</h1>
-          <p className="mt-2 text-[var(--muted)]">Your connected channel at a glance.</p>
+      <div className="w-full max-w-none space-y-6">
+        <header>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">Dashboard</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Competitive intelligence at a glance — your channel is shown in the header above.
+          </p>
         </header>
 
         {channelsLoading ? (
-          <p className="text-[var(--muted)] py-16 text-center">Loading…</p>
+          <p className="text-[var(--muted)] py-12 text-center">Loading…</p>
         ) : !channel ? (
-          <section className="py-12 max-w-xl">
-            <h2 className="text-xl font-semibold text-[var(--foreground)]">
+          <section className="max-w-xl rounded-xl ring-1 ring-[var(--border)] p-6">
+            <h2 className="text-lg font-semibold text-[var(--foreground)]">
               Connect your YouTube channel
             </h2>
-            <p className="mt-2 text-[var(--muted)]">
-              One channel per account. Paste your channel URL to start tracking.
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Optional baseline for your own outliers and thumbnails. Competitor tracking works
+              without it.
             </p>
-            <div className="mt-8">
-              <AddChannelForm
-                onSuccess={() => {
-                  mutateChannels()
-                  mutateVideos()
-                }}
-              />
+            <div className="mt-6">
+              <AddChannelForm onSuccess={() => mutateChannels()} />
             </div>
           </section>
         ) : (
-          <>
-            <section className="py-8 border-b border-[var(--border)]">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-                {channel.thumbnail_url && (
-                  <img
-                    src={channel.thumbnail_url}
-                    alt=""
-                    className="h-24 w-24 rounded-full object-cover ring-2 ring-[var(--accent)]"
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="xl:col-span-2 space-y-6">
+              <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="rounded-xl ring-1 ring-[var(--border)] p-4 bg-[var(--elevated)]/20">
+                  <MetricCard
+                    title="Subscribers"
+                    value={channel.subscriber_count || 0}
+                    change={subscriberChange}
+                    format="subscribers"
                   />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--accent)]">
-                    Your channel
-                  </p>
-                  <h2 className="mt-1 text-2xl font-bold text-[var(--foreground)] truncate">
-                    {channel.channel_name}
-                  </h2>
-                  <a
-                    href={channel.channel_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 text-sm text-[var(--accent)] hover:underline truncate block"
-                  >
-                    {channel.channel_url}
-                  </a>
                 </div>
-              </div>
-            </section>
+                <div className="rounded-xl ring-1 ring-[var(--border)] p-4 bg-[var(--elevated)]/20">
+                  <MetricCard
+                    title="Total views"
+                    value={channel.view_count || 0}
+                    change={viewChange}
+                    format="views"
+                  />
+                </div>
+                <div className="rounded-xl ring-1 ring-[var(--border)] p-4 bg-[var(--elevated)]/20">
+                  <MetricCard title="Videos" value={channel.video_count || 0} format="number" />
+                </div>
+              </section>
 
-            <section className="py-8 border-b border-[var(--border)]">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-16">
-                <MetricCard
-                  title="Subscribers"
-                  value={channel.subscriber_count || 0}
-                  change={subscriberChange}
-                  format="subscribers"
-                />
-                <MetricCard
-                  title="Total views"
-                  value={channel.view_count || 0}
-                  change={viewChange}
-                  format="views"
-                />
-                <MetricCard title="Videos" value={channel.video_count || 0} format="number" />
-              </div>
-            </section>
-
-            {latestVideo && (
-              <section className="py-8 border-b border-[var(--border)]">
-                <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4">Latest upload</h3>
-                <div className="max-w-3xl">
-                  <VideoThumbnailLink
-                    videoId={latestVideo.video_id}
-                    title={latestVideo.title}
-                    thumbnailUrl={latestVideo.thumbnail_url}
-                    subtitle={`Published ${new Date(latestVideo.published_at).toLocaleDateString()}`}
-                    views={latestVideo.view_count}
-                    likes={latestVideo.like_count}
-                    comments={latestVideo.comment_count}
-                    layout="row"
+              <section className="rounded-xl ring-1 ring-[var(--border)] p-4">
+                <h3 className="text-sm font-semibold text-[var(--foreground)] mb-3">Quick links</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <QuickLink
+                    href="/tracking/competitors/channels"
+                    title="Competitor channels"
+                    detail={`${competitors?.length ?? 0} tracked`}
+                  />
+                  <QuickLink
+                    href="/tracking/outliers"
+                    title="Performing now"
+                    detail="Outliers across all sources"
+                  />
+                  <QuickLink href="/tracking/discover" title="Discover trending" detail="Niche research" />
+                  <QuickLink
+                    href="/tracking/thumbnails"
+                    title="Thumbnail search"
+                    detail="Visual search your index"
                   />
                 </div>
               </section>
-            )}
+            </div>
 
-            <section className="py-8">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-[var(--foreground)]">Top 5 videos</h3>
-                <Link
-                  href="/tracking/my-videos"
-                  className="text-sm font-medium text-[var(--accent)] hover:underline"
-                >
-                  Video analytics →
-                </Link>
-              </div>
-              {videosLoading ? (
-                <p className="text-sm text-[var(--muted)] py-8 text-center">Loading videos…</p>
-              ) : (
-                <TopVideosList videos={topVideos} />
-              )}
-            </section>
-          </>
+            <div className="space-y-6">
+              <TopOutliersWidget items={topPerformers} isLoading={outliersLoading} />
+
+              <section className="rounded-xl ring-1 ring-[var(--border)] p-4 text-xs text-[var(--muted)]">
+                <p>
+                  Use the header to <strong className="text-[var(--foreground)]">change channel</strong>{' '}
+                  when needed. Competitor folders and outlier scores live under{' '}
+                  <strong className="text-[var(--foreground)]">Competitors</strong> in the sidebar.
+                </p>
+              </section>
+            </div>
+          </div>
         )}
       </div>
     </DashboardShell>
+  )
+}
+
+function QuickLink({
+  href,
+  title,
+  detail,
+}: {
+  href: string
+  title: string
+  detail: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-lg px-3 py-3 ring-1 ring-[var(--border)] hover:ring-[var(--accent)] bg-[var(--card)]/30 hover:bg-[var(--elevated)]/40 transition-colors"
+    >
+      <p className="text-sm font-medium text-[var(--foreground)]">{title}</p>
+      <p className="text-[10px] text-[var(--muted)] mt-0.5">{detail}</p>
+    </Link>
   )
 }

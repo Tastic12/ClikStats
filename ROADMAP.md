@@ -1,6 +1,6 @@
 # ClikStats Roadmap
 
-**Last reviewed:** 2026-05-28
+**Last reviewed:** 2026-05-29
 
 > New chat: *"Read `ROADMAP.md` and let's work on [item]."*
 
@@ -8,6 +8,7 @@
 
 ## Done recently
 
+- [x] **Product phases 1–3 (2026-05-29)** — left sidebar nav, channel in header + change channel, dashboard columns + performing-now widget, unified outliers feed, competitors-first layout, plan scaffolding (no billing)
 - [x] **Customer feedback batch (2026-05-28)** — move channels/videos to categories, Shorts v2 logic, thumbnail index dashboard, image search fixes, duplicate-add messaging, competitor list-first view, comparison tables instead of bar charts
 - [x] Discover tab (Tier A) — trending browse + thumbnail search integration
 - [x] **Portrait thumbnail Short detection** — now combined with duration (3 min cap) in migration `20260528000001`
@@ -20,6 +21,9 @@
 ---
 
 ## Setup still required (one-time)
+
+### Migration `20260529000001_product_phases.sql`
+Adds `users.plan` (free/pro scaffold), standalone competitor video outlier scores. Run in Supabase SQL Editor.
 
 ### Migration `20260528000001_customer_feedback_fixes.sql`
 Run in Supabase SQL Editor after deploy. Updates:
@@ -37,6 +41,13 @@ Then re-sync if Hide Shorts still looks wrong:
 
 ### Admin access
 Set `ADMIN_EMAILS=your@email.com` in `.env.local` and Vercel, redeploy. Visit `/admin`.
+
+### Plan / paywall scaffold (billing not wired)
+- `users.plan` = `free` (default) or `pro` (set manually in Supabase for now)
+- `lib/plans.ts` — feature gates; beta default unlocks everything unless:
+  - Client: `NEXT_PUBLIC_UNLOCK_ALL_FEATURES=false`
+  - Server: `UNLOCK_ALL_FEATURES=false`
+- When locked down, **change connected channel** requires Pro
 
 ### Optional: Discover nightly cron
 Deploy `discover-trending-cron` edge function + cron at `0 4 * * *`.

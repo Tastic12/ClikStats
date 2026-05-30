@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useUserProfile } from '../../lib/hooks'
+import { normalizePlan, PLAN_LABELS, PLAN_FEATURE_COPY, proFeatureList } from '../../lib/plans'
 import { useShortsPreference } from '../../lib/preferences'
 
 type ProfileMenuProps = {
@@ -75,6 +76,11 @@ export function ProfileMenu({ email, onSignOut }: ProfileMenuProps) {
             <p className="text-sm font-medium text-[var(--foreground)] truncate">{email}</p>
           </div>
 
+          <div className="px-4 py-2 border-b border-[var(--border)]">
+            <p className="text-xs text-[var(--muted)]">Plan</p>
+            <PlanBadge />
+          </div>
+
           {editing ? (
             <div className="px-4 py-3 space-y-2">
               <label className="text-xs font-medium text-[var(--muted)]">Profile name</label>
@@ -133,6 +139,28 @@ export function ProfileMenu({ email, onSignOut }: ProfileMenuProps) {
             </div>
           )}
         </div>
+      )}
+    </div>
+  )
+}
+
+function PlanBadge() {
+  const { profile, isLoading } = useUserProfile()
+  const plan = normalizePlan(profile?.plan)
+
+  if (isLoading) return <p className="text-sm text-[var(--muted)]">…</p>
+
+  return (
+    <div className="mt-1">
+      <p className="text-sm font-semibold text-[var(--foreground)]">{PLAN_LABELS[plan]}</p>
+      {plan === 'free' && (
+        <p className="text-[10px] text-[var(--muted)] mt-1 leading-snug">
+          Pro will unlock:{' '}
+          {proFeatureList()
+            .map((f) => PLAN_FEATURE_COPY[f].label.toLowerCase())
+            .join(', ')}
+          . Billing not connected yet.
+        </p>
       )}
     </div>
   )

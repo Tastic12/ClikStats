@@ -17,7 +17,6 @@ import {
 } from '../../../../../lib/hooks'
 import { useShortsPreference } from '../../../../../lib/preferences'
 import { DashboardShell } from '../../../../components/DashboardShell'
-import { TrackingLayout } from '../../../../components/TrackingLayout'
 import { CategoryTabs, ALL_CATEGORIES_ID } from '../../../../components/CategoryTabs'
 import { ItemTabs } from '../../../../components/ItemTabs'
 import { CompetitorCompare } from '../../../../components/CompetitorCompare'
@@ -206,8 +205,7 @@ export default function CompetitorChannelsPage() {
         router.push('/')
       }}
     >
-      <TrackingLayout>
-        <div className="space-y-6 w-full">
+      <div className="space-y-6 w-full">
           <CategoryTabs
             categories={(groups || []).map((g) => ({ id: g.id, name: g.name }))}
             selectedId={categoryId}
@@ -477,7 +475,6 @@ export default function CompetitorChannelsPage() {
             </div>
           )}
         </div>
-      </TrackingLayout>
     </DashboardShell>
   )
 }

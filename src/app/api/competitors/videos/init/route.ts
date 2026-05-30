@@ -68,6 +68,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to save competitor video' }, { status: 500 })
     }
 
+    await admin.rpc('recompute_standalone_competitor_video_scores', { user_uuid: user.id }).then(
+      () => {},
+      () => {}
+    )
+    await admin.rpc('recompute_niche_outlier_scores', { user_uuid: user.id })
+
     return NextResponse.json({
       success: true,
       alreadyExists,

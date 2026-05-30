@@ -229,19 +229,11 @@ function ThumbnailSearchPageInner() {
         router.push('/')
       }}
     >
-      <TrackingLayout>
+      <TrackingLayout
+        title="Thumbnail search"
+        description="Search indexed thumbnails from your channel, competitors, and Discover trending by visual similarity."
+      >
         <div className="space-y-6 w-full">
-          <section className="pb-6 border-b border-[var(--border)]">
-            <h2 className="text-sm font-semibold text-[var(--foreground)] mb-1">
-              What is thumbnail search?
-            </h2>
-            <p className="text-xs text-[var(--muted)] max-w-3xl">
-              Search thumbnails from <strong>your channel</strong>, <strong>competitors</strong>, and{' '}
-              <strong>Discover trending</strong> — but only after they&apos;ve been indexed (see
-              counts below). Results are sorted by visual similarity, not title keywords.
-            </p>
-          </section>
-
           <section>
             <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
               <input

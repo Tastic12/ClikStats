@@ -38,6 +38,8 @@ export interface User {
   id: string
   email: string
   display_name?: string | null
+  plan?: 'free' | 'pro' | null
+  niche_group_id?: string | null
   created_at: string
   updated_at: string
 }
@@ -143,6 +145,7 @@ export interface CompetitorChannelVideo {
   like_count?: number
   comment_count?: number
   outlier_score?: number | null
+  niche_outlier_score?: number | null
   is_short?: boolean | null
   created_at: string
 }
@@ -155,9 +158,15 @@ export interface CompetitorVideo {
   channel_name?: string
   thumbnail_url?: string
   published_at?: string
+  duration?: string | null
+  thumbnail_width?: number | null
+  thumbnail_height?: number | null
   view_count?: number
   like_count?: number
   comment_count?: number
+  outlier_score?: number | null
+  niche_outlier_score?: number | null
+  is_short?: boolean | null
   group_id?: string | null
   created_at: string
   updated_at: string

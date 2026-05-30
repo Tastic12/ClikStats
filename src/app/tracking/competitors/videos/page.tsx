@@ -11,7 +11,6 @@ import {
   updateCompetitorVideoGroup,
 } from '../../../../../lib/hooks'
 import { DashboardShell } from '../../../../components/DashboardShell'
-import { TrackingLayout } from '../../../../components/TrackingLayout'
 import { CategoryTabs, ALL_CATEGORIES_ID } from '../../../../components/CategoryTabs'
 import { ItemTabs } from '../../../../components/ItemTabs'
 import { CompetitorVideosCompare } from '../../../../components/CompetitorVideosCompare'
@@ -131,8 +130,7 @@ export default function CompetitorVideosPage() {
         router.push('/')
       }}
     >
-      <TrackingLayout>
-        <div className="space-y-6 w-full">
+      <div className="space-y-6 w-full">
           <CategoryTabs
             categories={(groups || []).map((g) => ({ id: g.id, name: g.name }))}
             selectedId={categoryId}
@@ -283,7 +281,6 @@ export default function CompetitorVideosPage() {
             </div>
           )}
         </div>
-      </TrackingLayout>
     </DashboardShell>
   )
 }

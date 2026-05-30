@@ -93,7 +93,10 @@ export default function MyVideosPage() {
         router.push('/')
       }}
     >
-      <TrackingLayout>
+      <TrackingLayout
+        title="My channel"
+        description="Sync and analyse your connected channel. Outlier scores from here feed into Performing now alongside competitors."
+      >
         {!channelLoading && !channel ? (
           <p className="text-sm text-[var(--muted)]">
             Connect your channel on the{' '}
