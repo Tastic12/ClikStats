@@ -4,31 +4,32 @@ import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
+import { HomeProductPreview } from '../components/HomeProductPreview'
 
 const features = [
   {
-    icon: '📊',
-    title: 'Channel dashboard',
+    icon: '📁',
+    title: 'Competitor folders',
     description:
-      'See subscribers, total views, and your latest uploads in one place with clear performance charts.',
+      'Group rival channels and videos by niche — music, gaming, news — so you compare apples to apples.',
   },
   {
-    icon: '🎬',
-    title: 'My videos',
+    icon: '⚡',
+    title: 'Outlier scores',
     description:
-      'Track views, likes, and comments over time for every video on your channel — from upload to today.',
+      'See which uploads beat the baseline across your channel, competitors, and tracked videos in one feed.',
   },
   {
     icon: '🔍',
-    title: 'Competitor tracking',
+    title: 'Thumbnail search',
     description:
-      'Monitor rival channels and videos, filter by category, and compare performance side by side.',
+      'Find visually similar thumbnails across your index — your uploads, competitors, and Discover trending.',
   },
   {
-    icon: '🔄',
-    title: 'Automated snapshots',
+    icon: '📈',
+    title: 'Discover trending',
     description:
-      'Daily metric syncs build history so your charts grow more accurate the longer you use ClikStats.',
+      'Pull what\'s hot in your categories today and fold those thumbnails into search automatically.',
   },
 ]
 
@@ -49,12 +50,20 @@ export default function HomePage() {
     return () => subscription.unsubscribe()
   }, [])
 
+  const appHref = user ? '/tracking/competitors/channels' : '/auth'
+
   const primaryCta = user ? (
-    <Link href="/dashboard" className="cs-btn-primary inline-flex items-center justify-center px-8 py-3 text-base md:py-4 md:text-lg md:px-10">
-      Go to dashboard
+    <Link
+      href={appHref}
+      className="cs-btn-primary inline-flex items-center justify-center px-8 py-3 text-base md:py-4 md:text-lg md:px-10"
+    >
+      Open app
     </Link>
   ) : (
-    <Link href="/auth" className="cs-btn-primary inline-flex items-center justify-center px-8 py-3 text-base md:py-4 md:text-lg md:px-10">
+    <Link
+      href="/auth"
+      className="cs-btn-primary inline-flex items-center justify-center px-8 py-3 text-base md:py-4 md:text-lg md:px-10"
+    >
       Get started free
     </Link>
   )
@@ -70,17 +79,8 @@ export default function HomePage() {
           <div className="flex items-center gap-3 sm:gap-4">
             {user ? (
               <>
-                <Link
-                  href="/dashboard"
-                  className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)] whitespace-nowrap"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/tracking/my-videos"
-                  className="hidden sm:inline text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)] whitespace-nowrap"
-                >
-                  Tracking
+                <Link href={appHref} className="cs-btn-primary px-4 py-2 text-sm">
+                  Open app
                 </Link>
                 <button
                   type="button"
@@ -91,46 +91,55 @@ export default function HomePage() {
                 </button>
               </>
             ) : (
-              <Link href="/auth" className="cs-btn-primary px-4 py-2 text-sm">
-                Sign in
-              </Link>
+              <>
+                <Link
+                  href="/auth"
+                  className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)] whitespace-nowrap"
+                >
+                  Sign in
+                </Link>
+                <Link href="/auth" className="cs-btn-primary px-4 py-2 text-sm">
+                  Get started
+                </Link>
+              </>
             )}
           </div>
         </div>
       </header>
 
       <main className="flex-1 w-full">
-        {/* Hero */}
         <section className="px-4 sm:px-6 lg:px-8 xl:px-10 pt-16 pb-20 sm:pt-24 sm:pb-28 border-b border-[var(--border)]">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-sm font-semibold uppercase tracking-wide text-[var(--accent)]">
-              YouTube analytics
+              Competitive intelligence for creators
             </p>
             <h1 className="mt-4 text-4xl font-bold tracking-tight text-[var(--foreground)] sm:text-5xl md:text-6xl">
-              <span className="block">Your channel.</span>
-              <span className="block text-[var(--accent)]">Your competitors.</span>
-              <span className="block">One dashboard.</span>
+              <span className="block">Track rivals.</span>
+              <span className="block text-[var(--accent)]">Spot outliers.</span>
+              <span className="block">Steal what works.</span>
             </h1>
             <p className="mt-6 text-base text-[var(--muted)] sm:text-lg md:max-w-2xl md:mx-auto">
-              ClikStats tracks your YouTube performance and the channels you care about — with
-              charts, categories, and side-by-side comparisons built for creators who want clarity,
-              not clutter.
+              ClikStats is built around competitor folders, outlier scores, and thumbnail search —
+              not another generic channel dashboard.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               {primaryCta}
               {!user && (
                 <Link
-                  href="/auth"
+                  href="#preview"
                   className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-[var(--foreground)] border border-[var(--border-strong)] rounded-lg hover:bg-[var(--elevated)] transition-colors md:py-4 md:text-lg md:px-10"
                 >
-                  Sign in
+                  See demo
                 </Link>
               )}
             </div>
           </div>
         </section>
 
-        {/* Features */}
+        <div id="preview">
+          <HomeProductPreview />
+        </div>
+
         <section className="px-4 sm:px-6 lg:px-8 xl:px-10 py-16 sm:py-20 border-b border-[var(--border)]">
           <div className="mx-auto max-w-5xl">
             <div className="text-center max-w-2xl mx-auto">
@@ -138,10 +147,11 @@ export default function HomePage() {
                 Features
               </p>
               <h2 className="mt-3 text-3xl font-bold text-[var(--foreground)] sm:text-4xl">
-                Everything you need to grow with data
+                What ClikStats actually does
               </h2>
               <p className="mt-4 text-[var(--muted)]">
-                The same dark purple experience across dashboard, tracking, and your video analytics.
+                Connect your channel optionally — the product shines when you track competitors in
+                folders and hunt outliers.
               </p>
             </div>
 
@@ -164,15 +174,14 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* CTA */}
         <section className="px-4 sm:px-6 lg:px-8 xl:px-10 py-16 sm:py-20">
           <div className="mx-auto max-w-5xl flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-3xl font-bold text-[var(--foreground)] sm:text-4xl">
-                Ready to track what matters?
+                Ready to track your niche?
               </h2>
               <p className="mt-3 text-lg text-[var(--accent)]">
-                Connect your channel and start comparing today.
+                Add competitor channels, sort into folders, and watch the outliers roll in.
               </p>
             </div>
             <div className="shrink-0">{primaryCta}</div>
